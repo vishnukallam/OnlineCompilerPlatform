@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { ThemeColors } from '../types';
 import { API_URL } from '../constants';
@@ -16,8 +16,6 @@ interface FileInfo {
 
 const FileExplorer: React.FC<FileExplorerProps> = ({ colors, theme }) => {
     const [files, setFiles] = useState<FileInfo[]>([]);
-    const [, setIsUploading] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const fetchFiles = async () => {
         try {
@@ -30,30 +28,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ colors, theme }) => {
 
     useEffect(() => {
         fetchFiles();
-        const interval = setInterval(fetchFiles, 5000); // Auto-refresh every 5s
+        const interval = setInterval(fetchFiles, 5000);
         return () => clearInterval(interval);
     }, []);
-
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files || e.target.files.length === 0) return;
-        
-        const file = e.target.files[0];
-        const formData = new FormData();
-        formData.append('file', file);
-
-        setIsUploading(true);
-        try {
-            await axios.post(`${API_URL}/api/files/upload`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            fetchFiles();
-        } catch (err) {
-            console.error('Upload failed:', err);
-        } finally {
-            setIsUploading(false);
-            if (fileInputRef.current) fileInputRef.current.value = '';
-        }
-    };
 
     const handleDelete = async (filename: string) => {
         if (!window.confirm(`Delete ${filename}?`)) return;
