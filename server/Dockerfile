@@ -30,13 +30,12 @@ RUN apt-get update && \
 ENV JAVA_HOME=/usr/lib/jvm/default-java
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
-# Verify Java is installed correctly
+# Verify Java and Maven installed correctly
 RUN java -version && javac -version && mvn -version
 
 # Download common Java JARs into a shared lib directory
 RUN mkdir -p /usr/local/java/lib
 
-# Download all common Java libraries via Maven
 RUN mvn dependency:get -Dartifact=org.json:json:20231013 -Ddest=/usr/local/java/lib && \
     mvn dependency:get -Dartifact=com.google.code.gson:gson:2.10.1 -Ddest=/usr/local/java/lib && \
     mvn dependency:get -Dartifact=org.apache.commons:commons-lang3:3.13.0 -Ddest=/usr/local/java/lib && \
@@ -65,10 +64,10 @@ RUN mvn dependency:get -Dartifact=org.json:json:20231013 -Ddest=/usr/local/java/
 # Set CLASSPATH so all JARs are auto-available when running java
 ENV CLASSPATH="/usr/local/java/lib/*:."
 
-# Create Python virtual environment and install all packages inside it
+# Create Python virtual environment
 RUN python3 -m venv /opt/pyenv
 
-# Install ALL common Python packages in the venv
+# Install ALL common Python packages in the venv (NO --break-system-packages needed)
 RUN /opt/pyenv/bin/pip install --upgrade pip && \
     /opt/pyenv/bin/pip install \
     numpy \
@@ -126,10 +125,13 @@ RUN /opt/pyenv/bin/pip install --upgrade pip && \
     attrs \
     dataclasses-json
 
-# Make venv python the default python3
+# Make venv python the system default
 RUN ln -sf /opt/pyenv/bin/python3 /usr/local/bin/python3 && \
     ln -sf /opt/pyenv/bin/python3 /usr/local/bin/python && \
     ln -sf /opt/pyenv/bin/pip /usr/local/bin/pip3
+
+# Verify python works with packages
+RUN python3 -c "import numpy, pandas, scipy; print('Python packages OK')"
 
 WORKDIR /app
 
