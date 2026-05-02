@@ -1,9 +1,7 @@
 import React from 'react';
 import Editor from '@monaco-editor/react';
 import { Language, ThemeColors } from '../types';
-import { getFileName, API_URL } from '../constants';
-import axios from 'axios';
-
+import { getFileName } from '../constants';
 interface EditorContainerProps {
     language: Language;
     theme: 'dark' | 'light';
