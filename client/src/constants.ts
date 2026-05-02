@@ -2,9 +2,21 @@ import { Language, ThemeConfig } from './types';
 
 export const templates: Record<Language, string> = {
     python: `print("Welcome to Code Compiler.")`,
+    'python3.10': `print("Welcome to Python 3.10 Compiler.")`,
+    'python3.11': `print("Welcome to Python 3.11 Compiler.")`,
     java: `class Main {
     public static void main(String[] args) {
         System.out.println("Welcome to Code Compiler.");
+    }
+}`,
+    java16: `class Main {
+    public static void main(String[] args) {
+        System.out.println("Welcome to Java 16 Compiler.");
+    }
+}`,
+    java17: `class Main {
+    public static void main(String[] args) {
+        System.out.println("Welcome to Java 17 Compiler.");
     }
 }`
 };
@@ -38,8 +50,12 @@ export const themeConfig: ThemeConfig = {
 
 export const getFileName = (lang: Language): string => {
     switch (lang) {
-        case 'python': return 'main.py';
-        case 'java': return 'Main.java';
+        case 'python':
+        case 'python3.10':
+        case 'python3.11': return 'main.py';
+        case 'java':
+        case 'java16':
+        case 'java17': return 'Main.java';
         default: return 'main.txt';
     }
 };
