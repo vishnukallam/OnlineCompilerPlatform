@@ -1,0 +1,84 @@
+version: '3.9'
+
+services:
+  # Python 3.10 Runtime Container
+  python3-10:
+    build:
+      context: ./server/infrastructure/runtimes
+      dockerfile: python3.10/Dockerfile
+    image: code-runner:python3.10
+    container_name: code-runner-python3.10
+    restart: unless-stopped
+    networks:
+      - runner-network
+
+  # Python 3.11 Runtime Container
+  python3-11:
+    build:
+      context: ./server/infrastructure/runtimes
+      dockerfile: python3.11/Dockerfile
+    image: code-runner:python3.11
+    container_name: code-runner-python3.11
+    restart: unless-stopped
+    networks:
+      - runner-network
+
+  # Java 16 Runtime Container
+  java16:
+    build:
+      context: ./server/infrastructure/runtimes
+      dockerfile: java16/Dockerfile
+    image: code-runner:java16
+    container_name: code-runner-java16
+    restart: unless-stopped
+    networks:
+      - runner-network
+
+  # Java 17 Runtime Container
+  java17:
+    build:
+      context: ./server/infrastructure/runtimes
+      dockerfile: java17/Dockerfile
+    image: code-runner:java17
+    container_name: code-runner-java17
+    restart: unless-stopped
+    networks:
+      - runner-network
+
+  # Node.js Backend Server
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: code-compiler:server
+    container_name: code-compiler-server
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./server/temp:/app/temp
+    networks:
+      - runner-network
+    depends_on:
+      - python3-11
+      - java17
+
+  # React Frontend (Optional for production, but useful for dev)
+  client:
+    build:
+      context: ./client
+      dockerfile: ../Dockerfile.client # I'll create this
+    image: code-compiler:client
+    container_name: code-compiler-client
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    networks:
+      - runner-network
+    depends_on:
+      - server
+
+networks:
+  runner-network:
+    driver: bridge
