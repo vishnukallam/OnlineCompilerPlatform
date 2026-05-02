@@ -1,218 +1,178 @@
 /**
- * Local Execution Engine
- * Runs Python and Java code via child_process with:
+ * Docker-based Execution Engine
+ * Runs Python and Java code inside isolated Docker containers with:
  *  - Real-time stdout/stderr streaming
  *  - Stdin forwarding (interactive input)
- *  - Automatic pip installation for unknown packages
- *  - Matplotlib / visual output capture to base64
+ *  - Versioned language runtimes (Python 3.10/3.11, Java 16/17)
+ *  - Robust input validation and assertions
  */
 
-const { spawn, exec } = require('child_process');
+const Docker = require('dockerode');
 const fs = require('fs-extra');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+const { spawn, exec: execChild } = require('child_process');
 
+const docker = new Docker();
 const TEMP_DIR = path.join(__dirname, 'temp');
 
-const MAVEN_JARS = {
-    'org.json': {
-        url: 'https://repo1.maven.org/maven2/org/json/json/20240303/json-20240303.jar',
-        filename: 'json-20240303.jar'
-    },
-    'com.google.gson': {
-        url: 'https://repo1.maven.org/maven2/com/google/code/gson/gson/2.10.1/gson-2.10.1.jar',
-        filename: 'gson-2.10.1.jar'
-    },
-    'org.jsoup': {
-        url: 'https://repo1.maven.org/maven2/org/jsoup/jsoup/1.17.2/jsoup-1.17.2.jar',
-        filename: 'jsoup-1.17.2.jar'
-    },
-    'org.apache.commons.lang3': {
-        url: 'https://repo1.maven.org/maven2/org/apache/commons/commons-lang3/3.14.0/commons-lang3-3.14.0.jar',
-        filename: 'commons-lang3-3.14.0.jar'
-    }
-};
+const IS_RENDER = process.env.RENDER === 'true' || (process.env.NODE_ENV === 'production' && !process.env.DOCKER_HOST);
 
-const https = require('https');
+// --- LOCAL ENGINE (FALLBACK FOR RENDER) ---
 
-function downloadFile(url, dest) {
-    return new Promise((resolve, reject) => {
-        const file = fs.createWriteStream(dest);
-        https.get(url, (response) => {
-            if (response.statusCode === 301 || response.statusCode === 302) {
-                return downloadFile(response.headers.location, dest).then(resolve).catch(reject);
-            }
-            response.pipe(file);
-            file.on('finish', () => {
-                file.close(resolve);
-            });
-        }).on('error', (err) => {
-            fs.unlink(dest, () => { });
-            reject(err);
+async function executeLocal(code, { onOutput, onError, onStatus }, language) {
+    onStatus?.('Initializing Local Engine...');
+    const runId = uuidv4();
+    const workDir = path.join(TEMP_DIR, runId);
+    await fs.ensureDir(workDir);
+
+    if (language.startsWith('python')) {
+        const scriptPath = path.join(workDir, 'main.py');
+        await fs.writeFile(scriptPath, code, 'utf8');
+        const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+        const proc = spawn(pythonCmd, [scriptPath], { cwd: workDir });
+        proc.stdout.on('data', (data) => onOutput?.(data.toString('utf8')));
+        proc.stderr.on('data', (data) => onError?.(data.toString('utf8')));
+        proc.on('close', (code) => {
+            fs.remove(workDir).catch(() => { });
+            onStatus?.(code === 0 ? 'Success' : `Exited with code ${code}`);
         });
-    });
-}
-
-// Python stdlib — do not try to pip install these
-const PYTHON_STDLIB = new Set([
-    'sys', 'os', 'math', 'json', 're', 'datetime', 'time', 'random',
-    'collections', 'itertools', 'functools', 'string', 'io', 'abc',
-    'copy', 'traceback', 'pathlib', 'inspect', 'logging', 'argparse',
-    'typing', 'enum', 'dataclasses', 'contextlib', 'threading', 'queue',
-    'hashlib', 'hmac', 'base64', 'struct', 'binascii', 'csv', 'sqlite3',
-    'http', 'urllib', 'email', 'html', 'xml', 'subprocess', 'shutil',
-    'glob', 'tempfile', 'uuid', 'platform', 'gc', 'weakref', 'ast',
-    'decimal', 'fractions', 'statistics', 'operator', 'heapq', 'bisect',
-    'warnings', 'pdb', 'unittest', 'doctest', 'token', 'tokenize',
-    'dis', 'builtins', '__future__', 'types', 'abc', 'codecs', 'getopt',
-    'getpass', 'gettext', 'locale', 'optparse', 'signal', 'socket',
-    'ssl', 'select', 'selectors', 'asyncio', 'concurrent', 'multiprocessing',
-    'importlib', 'pkgutil', 'zipfile', 'tarfile', 'gzip', 'bz2', 'lzma',
-    'zlib', 'binascii', 'struct', 'array', 'mmap', 'ctypes', 'cProfile',
-    'profile', 'timeit', 'trace', 'tracemalloc', 'gc', 'pickle', 'shelve',
-    'configparser', 'netrc', 'ftplib', 'smtplib', 'imaplib', 'poplib',
-    'xmlrpc', 'socketserver', 'http', 'tkinter', 'curses', 'readline',
-]);
-
-// pip install name aliases
-const PIP_ALIAS = {
-    cv2: 'opencv-python',
-    PIL: 'Pillow',
-    sklearn: 'scikit-learn',
-    bs4: 'beautifulsoup4',
-    yaml: 'pyyaml',
-    dotenv: 'python-dotenv',
-    serial: 'pyserial',
-    Crypto: 'pycryptodome',
-};
-
-function resolvePackages(code) {
-    const pkgs = new Set();
-    const re = /^(?:import|from)\s+([a-zA-Z0-9_]+)/gm;
-    let m;
-    while ((m = re.exec(code)) !== null) {
-        const mod = m[1];
-        if (!PYTHON_STDLIB.has(mod)) {
-            pkgs.add(PIP_ALIAS[mod] || mod);
-        }
-    }
-    return Array.from(pkgs);
-}
-
-async function installPackages(packages, onStatus) {
-    for (const pkg of packages) {
-        onStatus?.(`Installing package: ${pkg}...`);
+        return proc;
+    } else {
+        const className = 'Main';
+        const sourceFile = path.join(workDir, `${className}.java`);
+        await fs.writeFile(sourceFile, code, 'utf8');
+        onStatus?.('Compiling...');
         await new Promise((resolve) => {
-            exec(`${pythonCmd} -m pip install ${pkg} --target="${TEMP_DIR}" --quiet`, (err, stdout, stderr) => {
-                if (err) {
-                    onStatus?.(`Warning: Failed to install ${pkg}`);
-                }
+            execChild(`javac ${sourceFile}`, (err, stdout, stderr) => {
+                if (err) onError?.(stderr);
                 resolve();
             });
         });
+        onStatus?.('Running...');
+        const proc = spawn('java', ['-cp', workDir, className]);
+        proc.stdout.on('data', (data) => onOutput?.(data.toString('utf8')));
+        proc.stderr.on('data', (data) => onError?.(data.toString('utf8')));
+        proc.on('close', (code) => {
+            fs.remove(workDir).catch(() => { });
+            onStatus?.(code === 0 ? 'Success' : `Exited with code ${code}`);
+        });
+        return proc;
     }
 }
 
-/**
- * Execute Python with:
- * - auto pip install
- * - real-time streaming
- * - stdin forwarding
- * - matplotlib capture
- * Returns the child process for stdin piping.
- */
-async function executePython(code, { onOutput, onError, onStatus } = {}) {
+// --- DOCKER ENGINE ---
+
+const SUPPORTED_LANGUAGES = {
+    'python': 'code-runner-python3.11',
+    'python3.10': 'code-runner-python3.10',
+    'python3.11': 'code-runner-python3.11',
+    'java': 'code-runner-java17',
+    'java16': 'code-runner-java16',
+    'java17': 'code-runner-java17'
+};
+
+const MAX_CODE_SIZE = 128 * 1024; // 128 KB
+
+function assert(condition, message) {
+    if (!condition) {
+        throw new Error(`Assertion Failed: ${message}`);
+    }
+}
+
+function validateRequest(language, code) {
+    assert(language && typeof language === 'string', 'Language must be a valid string');
+    assert(code && typeof code === 'string', 'Code must be a valid string');
+    assert(SUPPORTED_LANGUAGES[language], `Unsupported language: ${language}`);
+    assert(code.length <= MAX_CODE_SIZE, 'Code size exceeds maximum limit (128KB)');
+}
+
+// --- DOCKER ENGINE ---
+
+async function executePython(code, { onOutput, onError, onStatus } = {}, version = 'python') {
+    validateRequest(version, code);
+    if (IS_RENDER) return executeLocal(code, { onOutput, onError, onStatus }, version);
     await fs.ensureDir(TEMP_DIR);
 
-    const packages = resolvePackages(code);
-    if (packages.length > 0) {
-        await installPackages(packages, onStatus);
-    }
-
-    const hasMatplotlib = /matplotlib|seaborn/.test(code);
-
-    // Wrap code to capture matplotlib figures
-    let finalCode = code;
-    if (hasMatplotlib) {
-        finalCode = `
-import sys as _sys
-import io as _io
-import base64 as _b64
-import matplotlib as _mpl
-_mpl.use('Agg')
-
-${code}
-
-# --- Capture plot output ---
-try:
-    import matplotlib.pyplot as _plt
-    _buf = _io.BytesIO()
-    _plt.savefig(_buf, format='png', bbox_inches='tight')
-    _buf.seek(0)
-    _b64str = _b64.b64encode(_buf.read()).decode('utf-8')
-    print("VISUAL_OUTPUT:" + _b64str, file=_sys.stderr)
-    _plt.close('all')
-except Exception:
-    pass
-`;
-    }
-
+    const containerName = SUPPORTED_LANGUAGES[version];
     const runId = uuidv4();
     const scriptPath = path.join(TEMP_DIR, `${runId}.py`);
-    await fs.writeFile(scriptPath, finalCode, 'utf8');
 
-    onStatus?.('Running...');
+    // In Docker-land, the temp dir is mounted to /app
+    const dockerScriptPath = `/app/${runId}.py`;
 
-    return new Promise((resolve) => {
-        const proc = spawn(pythonCmd, [scriptPath], {
-            cwd: TEMP_DIR,
-            env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONPATH: TEMP_DIR },
+    await fs.writeFile(scriptPath, code, 'utf8');
+
+    onStatus?.('Initializing Container...');
+
+    try {
+        const container = docker.getContainer(containerName);
+        const containerInfo = await container.inspect();
+        assert(containerInfo.State.Running, `Runtime container ${containerName} is not running`);
+
+        onStatus?.('Running...');
+
+        const exec = await container.exec({
+            Cmd: ['python', dockerScriptPath],
+            AttachStdout: true,
+            AttachStderr: true,
+            AttachStdin: true,
+            Tty: false
         });
 
-        proc.stdout.on('data', (data) => onOutput?.(data.toString('utf8')));
-        proc.stderr.on('data', (data) => {
-            const s = data.toString('utf8');
-            // Separate visual markers from real errors
-            const lines = s.split('\n');
-            const errs = [];
-            for (const line of lines) {
-                if (line.startsWith('VISUAL_OUTPUT:')) {
-                    onOutput?.(line);  // Forward to stdout handler for visual processing
-                } else if (line.trim()) {
-                    errs.push(line);
-                }
+        const stream = await exec.start({ hijack: true, stdin: true });
+
+        // Stream output
+        stream.on('data', (chunk) => {
+            // Docker stream header is 8 bytes
+            // [1, 0, 0, 0, size1, size2, size3, size4] for stdout
+            // [2, 0, 0, 0, size1, size2, size3, size4] for stderr
+            let offset = 0;
+            while (offset < chunk.length) {
+                const type = chunk[offset];
+                const length = chunk.readUInt32BE(offset + 4);
+                const payload = chunk.slice(offset + 8, offset + 8 + length).toString('utf8');
+
+                if (type === 1) onOutput?.(payload);
+                else if (type === 2) onError?.(payload);
+
+                offset += 8 + length;
             }
-            if (errs.length > 0) onError?.(errs.join('\n'));
         });
 
-        proc.on('close', (code) => {
-            fs.remove(scriptPath).catch(() => { });
-            onStatus?.(code === 0 ? 'Success' : `Exited with code ${code}`);
-            resolve(null);
+        return new Promise((resolve) => {
+            stream.on('end', async () => {
+                const { ExitCode } = await exec.inspect();
+                await fs.remove(scriptPath);
+                onStatus?.(ExitCode === 0 ? 'Success' : `Exited with code ${ExitCode}`);
+                resolve(null);
+            });
+
+            // Return proc-like object for stdin
+            resolve({
+                stdin: {
+                    write: (data) => stream.write(data)
+                },
+                kill: () => stream.destroy()
+            });
         });
 
-        proc.on('error', (err) => {
-            onError?.(`Failed to start Python: ${err.message}`);
-            onStatus?.('Error');
-            resolve(null);
-        });
-
-        resolve(proc);
-    });
+    } catch (err) {
+        await fs.remove(scriptPath);
+        onError?.(`Docker Engine Error: ${err.message}`);
+        onStatus?.('Error');
+        return null;
+    }
 }
 
-/**
- * Execute Java with:
- * - javac compile step (errors reported)
- * - real-time streaming
- * - stdin forwarding
- * - classpath with downloaded JARs
- */
-async function executeJava(code, { onOutput, onError, onStatus } = {}) {
+async function executeJava(code, { onOutput, onError, onStatus } = {}, version = 'java') {
+    validateRequest(version, code);
+    if (IS_RENDER) return executeLocal(code, { onOutput, onError, onStatus }, version);
+
     await fs.ensureDir(TEMP_DIR);
 
+    const containerName = SUPPORTED_LANGUAGES[version];
     const cleanedCode = code.replace(/^[ \t]*package[ \t]+[a-zA-Z0-9._]+[ \t]*;/gm, '').trim();
     const classMatch = cleanedCode.match(/public\s+class\s+(\w+)/);
     const className = classMatch ? classMatch[1] : 'Main';
@@ -222,81 +182,90 @@ async function executeJava(code, { onOutput, onError, onStatus } = {}) {
     await fs.ensureDir(workDir);
 
     const sourceFile = path.join(workDir, `${className}.java`);
+    const dockerWorkDir = `/app/${runId}`;
+    const dockerSourceFile = `${dockerWorkDir}/${className}.java`;
+
     await fs.writeFile(sourceFile, cleanedCode, 'utf8');
 
-    // Handle package installations
-    const importRe = /^import\s+([a-zA-Z0-9_.]+);/gm;
-    let m2;
-    const requiredJars = new Set();
-    while ((m2 = importRe.exec(cleanedCode)) !== null) {
-        const importPath = m2[1];
-        // Match base packages
-        for (const [pkgPrefix, jarInfo] of Object.entries(MAVEN_JARS)) {
-            if (importPath.startsWith(pkgPrefix)) {
-                requiredJars.add(jarInfo);
-            }
-        }
-    }
+    try {
+        const container = docker.getContainer(containerName);
+        const containerInfo = await container.inspect();
+        assert(containerInfo.State.Running, `Runtime container ${containerName} is not running`);
 
-    if (requiredJars.size > 0) {
-        for (const jarInfo of requiredJars) {
-            const jarPath = path.join(TEMP_DIR, jarInfo.filename);
-            if (!(await fs.pathExists(jarPath))) {
-                onStatus?.(`Downloading dependencies from cloud...`);
-                try {
-                    await downloadFile(jarInfo.url, jarPath);
-                } catch (e) {
-                    onStatus?.(`Warning: Failed to download JAR: ${e.message}`);
-                }
-            }
-        }
-    }
-
-    const sep = process.platform === 'win32' ? ';' : ':';
-    const jars = (await fs.readdir(TEMP_DIR))
-        .filter(f => f.endsWith('.jar'))
-        .map(f => path.join(TEMP_DIR, f));
-    const classpath = [workDir, ...jars].join(sep);
-
-    // Compile
-    onStatus?.('Compiling...');
-    const compileResult = await new Promise((resolve) => {
-        exec(`javac -cp "${classpath}" "${sourceFile}"`, (err, stdout, stderr) => {
-            resolve({ err, stdout, stderr });
+        // Step 1: Compile
+        onStatus?.('Compiling...');
+        const compileExec = await container.exec({
+            Cmd: ['javac', dockerSourceFile],
+            AttachStderr: true
         });
-    });
 
-    if (compileResult.err) {
-        onError?.(compileResult.stderr || compileResult.stdout);
-        onStatus?.('Compilation Error');
-        fs.remove(workDir).catch(() => { });
+        const compileStream = await compileExec.start();
+        let compileError = '';
+
+        await new Promise((resolve) => {
+            compileStream.on('data', (chunk) => {
+                // Header is 8 bytes
+                compileError += chunk.slice(8).toString('utf8');
+            });
+            compileStream.on('end', resolve);
+        });
+
+        const { ExitCode: compileCode } = await compileExec.inspect();
+
+        if (compileCode !== 0) {
+            onError?.(compileError || 'Compilation failed');
+            onStatus?.('Compilation Error');
+            await fs.remove(workDir);
+            return null;
+        }
+
+        // Step 2: Run
+        onStatus?.('Running...');
+        const runExec = await container.exec({
+            Cmd: ['java', '-cp', dockerWorkDir, className],
+            AttachStdout: true,
+            AttachStderr: true,
+            AttachStdin: true
+        });
+
+        const runStream = await runExec.start({ hijack: true, stdin: true });
+
+        runStream.on('data', (chunk) => {
+            let offset = 0;
+            while (offset < chunk.length) {
+                const type = chunk[offset];
+                const length = chunk.readUInt32BE(offset + 4);
+                const payload = chunk.slice(offset + 8, offset + 8 + length).toString('utf8');
+
+                if (type === 1) onOutput?.(payload);
+                else if (type === 2) onError?.(payload);
+
+                offset += 8 + length;
+            }
+        });
+
+        return new Promise((resolve) => {
+            runStream.on('end', async () => {
+                const { ExitCode } = await runExec.inspect();
+                await fs.remove(workDir);
+                onStatus?.(ExitCode === 0 ? 'Success' : `Exited with code ${ExitCode}`);
+                resolve(null);
+            });
+
+            resolve({
+                stdin: {
+                    write: (data) => runStream.write(data)
+                },
+                kill: () => runStream.destroy()
+            });
+        });
+
+    } catch (err) {
+        await fs.remove(workDir);
+        onError?.(`Docker Engine Error: ${err.message}`);
+        onStatus?.('Error');
         return null;
     }
-
-    onStatus?.('Running...');
-
-    return new Promise((resolve) => {
-        const proc = spawn('java', ['-cp', classpath, className], {
-            cwd: workDir,
-        });
-
-        proc.stdout.on('data', (data) => onOutput?.(data.toString('utf8')));
-        proc.stderr.on('data', (data) => onError?.(data.toString('utf8')));
-
-        proc.on('close', (code) => {
-            fs.remove(workDir).catch(() => { });
-            onStatus?.(code === 0 ? 'Success' : `Exited with code ${code}`);
-            resolve(null);
-        });
-
-        proc.on('error', (err) => {
-            onError?.(`Failed to start Java: ${err.message}`);
-            onStatus?.('Error');
-            resolve(null);
-        });
-
-        resolve(proc);
-    });
 }
 
 module.exports = { executePython, executeJava };

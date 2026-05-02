@@ -161,19 +161,19 @@ io.on("connection", (socket) => {
     socket.emit("status", "Initializing...");
 
     try {
-      if (language === "java") {
+      if (language.startsWith("java")) {
         currentProcess = await executeJava(code, {
           onOutput,
           onError,
           onStatus
-        });
+        }, language);
       }
-      else if (language === "python") {
+      else if (language.startsWith("python")) {
         currentProcess = await executePython(code, {
           onOutput,
           onError,
           onStatus
-        });
+        }, language);
       }
       else {
         socket.emit("stderr", "Unsupported language");

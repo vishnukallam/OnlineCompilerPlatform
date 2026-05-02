@@ -91,8 +91,10 @@ const Header: React.FC<HeaderProps> = ({
                             textAlign: 'center'
                         }}
                     >
-                        <option value="python">Python 3</option>
-                        <option value="java">Java 13</option>
+                        <option value="python3.11">Python 3.11</option>
+                        <option value="python3.10">Python 3.10</option>
+                        <option value="java17">Java 17</option>
+                        <option value="java16">Java 16</option>
                     </select>
                 </div>
             </div>

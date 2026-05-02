@@ -1,4 +1,4 @@
-export type Language = 'python' | 'java';
+export type Language = 'python' | 'java' | 'python3.10' | 'python3.11' | 'java16' | 'java17';
 export type Theme = 'dark' | 'light';
 
 export interface ThemeColors {
