@@ -67,7 +67,7 @@ ENV CLASSPATH="/usr/local/java/lib/*:."
 # Create Python virtual environment
 RUN python3 -m venv /opt/pyenv
 
-# Install ALL common Python packages in the venv (NO --break-system-packages needed)
+# Install ALL common Python packages in the venv
 RUN /opt/pyenv/bin/pip install --upgrade pip && \
     /opt/pyenv/bin/pip install \
     numpy \
@@ -125,13 +125,13 @@ RUN /opt/pyenv/bin/pip install --upgrade pip && \
     attrs \
     dataclasses-json
 
-# Make venv python the system default
+# Verify packages using venv python directly (not system python3)
+RUN /opt/pyenv/bin/python3 -c "import numpy, pandas, scipy; print('Python packages OK')"
+
+# Make venv python the system default AFTER verification
 RUN ln -sf /opt/pyenv/bin/python3 /usr/local/bin/python3 && \
     ln -sf /opt/pyenv/bin/python3 /usr/local/bin/python && \
     ln -sf /opt/pyenv/bin/pip /usr/local/bin/pip3
-
-# Verify python works with packages
-RUN python3 -c "import numpy, pandas, scipy; print('Python packages OK')"
 
 WORKDIR /app
 
