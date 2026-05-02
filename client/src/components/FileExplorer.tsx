@@ -16,7 +16,7 @@ interface FileInfo {
 
 const FileExplorer: React.FC<FileExplorerProps> = ({ colors, theme }) => {
     const [files, setFiles] = useState<FileInfo[]>([]);
-    const [isUploading, setIsUploading] = useState(false);
+    const [, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const fetchFiles = async () => {
