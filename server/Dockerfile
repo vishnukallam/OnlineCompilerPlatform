@@ -8,6 +8,7 @@ RUN apt-get update && \
     python3 \
     python3-pip \
     python3-dev \
+    python3-venv \
     default-jdk \
     maven \
     gcc \
@@ -64,61 +65,39 @@ RUN mvn dependency:get -Dartifact=org.json:json:20231013 -Ddest=/usr/local/java/
 # Set CLASSPATH so all JARs are auto-available when running java
 ENV CLASSPATH="/usr/local/java/lib/*:."
 
-# Upgrade pip first
-RUN pip3 install --upgrade pip --break-system-packages
+# Create Python virtual environment and install all packages inside it
+RUN python3 -m venv /opt/pyenv
 
-# Install Python packages in small groups to avoid failures
-
-# Group 1 - Core Scientific
-RUN pip3 install --break-system-packages \
+# Install ALL common Python packages in the venv
+RUN /opt/pyenv/bin/pip install --upgrade pip && \
+    /opt/pyenv/bin/pip install \
     numpy \
     pandas \
-    scipy
-
-# Group 2 - Visualization
-RUN pip3 install --break-system-packages \
+    scipy \
     matplotlib \
     seaborn \
-    plotly
-
-# Group 3 - Machine Learning
-RUN pip3 install --break-system-packages \
+    plotly \
     scikit-learn \
     xgboost \
     lightgbm \
-    statsmodels
-
-# Group 4 - NLP
-RUN pip3 install --break-system-packages \
+    statsmodels \
     nltk \
-    textblob
-
-# Group 5 - Web & HTTP
-RUN pip3 install --break-system-packages \
+    textblob \
     requests \
     httpx \
     beautifulsoup4 \
     lxml \
-    html5lib
-
-# Group 6 - File formats
-RUN pip3 install --break-system-packages \
+    html5lib \
     openpyxl \
     xlrd \
     PyPDF2 \
     pypdf \
     python-docx \
     Pillow \
-    imageio
-
-# Group 7 - Database
-RUN pip3 install --break-system-packages \
+    imageio \
     sqlalchemy \
     pymongo \
-    psycopg2-binary
-
-# Group 8 - Utilities
-RUN pip3 install --break-system-packages \
+    psycopg2-binary \
     tqdm \
     rich \
     click \
@@ -126,16 +105,19 @@ RUN pip3 install --break-system-packages \
     tabulate \
     pydantic \
     python-dotenv \
+    arrow \
     pytz \
-    psutil \
-    pyyaml \
-    ujson
-
-# Group 9 - Math & Other
-RUN pip3 install --break-system-packages \
     sympy \
     networkx \
-    arrow \
+    cryptography \
+    bcrypt \
+    aiohttp \
+    fastapi \
+    uvicorn \
+    pytest \
+    pyyaml \
+    ujson \
+    psutil \
     faker \
     humanize \
     more-itertools \
@@ -144,18 +126,12 @@ RUN pip3 install --break-system-packages \
     attrs \
     dataclasses-json
 
-# Group 10 - Security & Async
-RUN pip3 install --break-system-packages \
-    cryptography \
-    bcrypt \
-    aiohttp \
-    fastapi \
-    uvicorn \
-    pytest
+# Make venv python the default python3
+RUN ln -sf /opt/pyenv/bin/python3 /usr/local/bin/python3 && \
+    ln -sf /opt/pyenv/bin/python3 /usr/local/bin/python && \
+    ln -sf /opt/pyenv/bin/pip /usr/local/bin/pip3
 
 WORKDIR /app
-
-ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
 COPY package*.json ./
 RUN npm install --production
