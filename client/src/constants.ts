@@ -60,5 +60,5 @@ export const getFileName = (lang: Language): string => {
     }
 };
 
-export const API_URL = process.env.REACT_APP_API_URL || 'https://online-compiler-backend-36dz.onrender.com';
+export const API_URL = process.env.REACT_APP_API_URL || 'https://online-compiler-platform-dmc5.onrender.com';
 
