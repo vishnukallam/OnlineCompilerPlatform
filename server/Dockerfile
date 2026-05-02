@@ -47,75 +47,78 @@ RUN mvn dependency:get -Dartifact=org.json:json:20231013 -Ddest=/usr/local/java/
     mvn dependency:get -Dartifact=com.fasterxml.jackson.core:jackson-databind:2.16.1 -Ddest=/usr/local/java/lib && \
     mvn dependency:get -Dartifact=com.fasterxml.jackson.core:jackson-annotations:2.16.1 -Ddest=/usr/local/java/lib && \
     mvn dependency:get -Dartifact=org.slf4j:slf4j-api:2.0.9 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=ch.qos.logback:logback-classic:1.4.11 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=org.apache.logging.log4j:log4j-core:2.22.0 -Ddest=/usr/local/java/lib && \
     mvn dependency:get -Dartifact=junit:junit:4.13.2 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=org.junit.jupiter:junit-jupiter:5.10.1 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=org.mockito:mockito-core:5.7.0 -Ddest=/usr/local/java/lib && \
     mvn dependency:get -Dartifact=com.squareup.okhttp3:okhttp:4.12.0 -Ddest=/usr/local/java/lib && \
     mvn dependency:get -Dartifact=org.jsoup:jsoup:1.17.1 -Ddest=/usr/local/java/lib && \
     mvn dependency:get -Dartifact=com.google.guava:guava:32.1.3-jre -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=org.projectlombok:lombok:1.18.30 -Ddest=/usr/local/java/lib && \
     mvn dependency:get -Dartifact=org.apache.httpcomponents:httpclient:4.5.14 -Ddest=/usr/local/java/lib && \
     mvn dependency:get -Dartifact=org.yaml:snakeyaml:2.2 -Ddest=/usr/local/java/lib && \
     mvn dependency:get -Dartifact=com.opencsv:opencsv:5.9 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=org.apache.poi:poi:5.2.5 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=org.apache.poi:poi-ooxml:5.2.5 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=com.itextpdf:itextpdf:5.5.13.3 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=org.bouncycastle:bcprov-jdk18on:1.77 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=io.netty:netty-all:4.1.101.Final -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=org.hibernate:hibernate-core:6.4.1.Final -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=mysql:mysql-connector-java:8.0.33 -Ddest=/usr/local/java/lib && \
     mvn dependency:get -Dartifact=org.postgresql:postgresql:42.7.1 -Ddest=/usr/local/java/lib && \
     mvn dependency:get -Dartifact=com.h2database:h2:2.2.224 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=redis.clients:jedis:5.1.0 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=org.mongodb:mongodb-driver-sync:4.11.1 -Ddest=/usr/local/java/lib && \
     mvn dependency:get -Dartifact=com.zaxxer:HikariCP:5.1.0 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=io.reactivex.rxjava3:rxjava:3.1.8 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=io.projectreactor:reactor-core:3.6.1 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=org.apache.kafka:kafka-clients:3.6.1 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=com.rabbitmq:amqp-client:5.20.0 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=org.quartz-scheduler:quartz:2.3.2 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=net.sf.ehcache:ehcache:2.10.9.2 -Ddest=/usr/local/java/lib && \
     mvn dependency:get -Dartifact=com.github.ben-manes.caffeine:caffeine:3.1.8 -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=org.mapstruct:mapstruct:1.5.5.Final -Ddest=/usr/local/java/lib && \
-    mvn dependency:get -Dartifact=com.google.inject:guice:7.0.0 -Ddest=/usr/local/java/lib && \
     mvn dependency:get -Dartifact=org.apache.commons:commons-text:1.11.0 -Ddest=/usr/local/java/lib && \
     mvn dependency:get -Dartifact=joda-time:joda-time:2.12.5 -Ddest=/usr/local/java/lib
 
 # Set CLASSPATH so all JARs are auto-available when running java
 ENV CLASSPATH="/usr/local/java/lib/*:."
 
-# Install ALL common Python packages
+# Upgrade pip first
+RUN pip3 install --upgrade pip --break-system-packages
+
+# Install Python packages in small groups to avoid failures
+
+# Group 1 - Core Scientific
 RUN pip3 install --break-system-packages \
     numpy \
     pandas \
-    scipy \
+    scipy
+
+# Group 2 - Visualization
+RUN pip3 install --break-system-packages \
     matplotlib \
     seaborn \
-    plotly \
-    bokeh \
+    plotly
+
+# Group 3 - Machine Learning
+RUN pip3 install --break-system-packages \
     scikit-learn \
     xgboost \
     lightgbm \
-    statsmodels \
+    statsmodels
+
+# Group 4 - NLP
+RUN pip3 install --break-system-packages \
     nltk \
-    textblob \
+    textblob
+
+# Group 5 - Web & HTTP
+RUN pip3 install --break-system-packages \
     requests \
     httpx \
     beautifulsoup4 \
     lxml \
-    html5lib \
+    html5lib
+
+# Group 6 - File formats
+RUN pip3 install --break-system-packages \
     openpyxl \
     xlrd \
     PyPDF2 \
     pypdf \
     python-docx \
     Pillow \
-    imageio \
+    imageio
+
+# Group 7 - Database
+RUN pip3 install --break-system-packages \
     sqlalchemy \
     pymongo \
-    psycopg2-binary \
+    psycopg2-binary
+
+# Group 8 - Utilities
+RUN pip3 install --break-system-packages \
     tqdm \
     rich \
     click \
@@ -123,19 +126,16 @@ RUN pip3 install --break-system-packages \
     tabulate \
     pydantic \
     python-dotenv \
-    arrow \
     pytz \
+    psutil \
+    pyyaml \
+    ujson
+
+# Group 9 - Math & Other
+RUN pip3 install --break-system-packages \
     sympy \
     networkx \
-    cryptography \
-    bcrypt \
-    aiohttp \
-    fastapi \
-    uvicorn \
-    pytest \
-    pyyaml \
-    ujson \
-    psutil \
+    arrow \
     faker \
     humanize \
     more-itertools \
@@ -143,6 +143,15 @@ RUN pip3 install --break-system-packages \
     qrcode \
     attrs \
     dataclasses-json
+
+# Group 10 - Security & Async
+RUN pip3 install --break-system-packages \
+    cryptography \
+    bcrypt \
+    aiohttp \
+    fastapi \
+    uvicorn \
+    pytest
 
 WORKDIR /app
 
