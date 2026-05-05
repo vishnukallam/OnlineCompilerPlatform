@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { ThemeColors } from '../types';
 import { API_URL } from '../constants';
@@ -16,8 +16,6 @@ interface FileInfo {
 
 const FileExplorer: React.FC<FileExplorerProps> = ({ colors, theme }) => {
     const [files, setFiles] = useState<FileInfo[]>([]);
-   const [isUploading, setIsUploading] = useState(false);
-const fileInputRef = useRef<HTMLInputElement>(null);
 
     const fetchFiles = async () => {
         try {
@@ -33,25 +31,6 @@ const fileInputRef = useRef<HTMLInputElement>(null);
         const interval = setInterval(fetchFiles, 5000);
         return () => clearInterval(interval);
     }, []);
-
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files || e.target.files.length === 0) return;
-        const file = e.target.files[0];
-        const formData = new FormData();
-        formData.append('file', file);
-        setIsUploading(true);
-        try {
-            await axios.post(`${API_URL}/api/files/upload`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            fetchFiles();
-        } catch (err) {
-            console.error('Upload failed:', err);
-        } finally {
-            setIsUploading(false);
-            if (fileInputRef.current) fileInputRef.current.value = '';
-        }
-    };
 
     const handleDelete = async (filename: string) => {
         if (!window.confirm(`Delete ${filename}?`)) return;
@@ -99,27 +78,6 @@ const fileInputRef = useRef<HTMLInputElement>(null);
                 }}>
                     Files
                 </h3>
-<<<<<<< HEAD
-
-=======
-                <button
-                    className="md-icon-button"
-                    onClick={() => fileInputRef.current?.click()}
-                    title="Upload File"
-                    disabled={isUploading}
-                    style={{ width: '32px', height: '32px' }}
-                >
-                    <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>
-                        {isUploading ? 'hourglass_empty' : 'upload'}
-                    </span>
-                </button>
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    style={{ display: 'none' }}
-                    onChange={handleUpload}
-                />
->>>>>>> e9ed254719f75d32be1cf619ce8e67c1f2e041c9
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px' }}>
@@ -131,7 +89,7 @@ const fileInputRef = useRef<HTMLInputElement>(null);
                         marginTop: '20px',
                         fontFamily: 'var(--md-sys-typescale-body-medium-font-family)'
                     }}>
-                        No files
+                        No files uploaded
                     </div>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
