@@ -42,7 +42,7 @@ const EditorContainer: React.FC<EditorContainerProps> = ({
                         </span>
                         {getFileName(language)}
                     </div>
-                    <button 
+                    <button
                         className="md-button md-button--text"
                         onClick={() => {
                             const filename = prompt('Enter filename to save:', getFileName(language));

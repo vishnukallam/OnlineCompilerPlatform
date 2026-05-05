@@ -1,10 +1,10 @@
 /**
- * Docker-based Execution Engine
- * Runs Python and Java code inside isolated Docker containers with:
+ * Local Execution Engine for Render
+ * Runs Python and Java code directly on the host with:
  *  - Real-time stdout/stderr streaming
  *  - Stdin forwarding (interactive input)
- *  - Versioned language runtimes (Python 3.10/3.11, Java 16/17)
- *  - Robust input validation and assertions
+ *  - Venv Python with all packages pre-installed
+ *  - Java with CLASSPATH set to pre-downloaded JARs
  */
 
 const Docker = require('dockerode');
@@ -19,7 +19,15 @@ const TEMP_DIR = path.join(__dirname, 'temp');
 
 const IS_RENDER = process.env.RENDER === 'true' || (process.env.NODE_ENV === 'production' && !process.env.DOCKER_HOST);
 
-// --- LOCAL ENGINE (FALLBACK FOR RENDER) ---
+// Use venv python if available (set by Dockerfile), else fallback
+const PYTHON_CMD = fs.existsSync('/opt/pyenv/bin/python3')
+    ? '/opt/pyenv/bin/python3'
+    : (process.platform === 'win32' ? 'python' : 'python3');
+
+// Java classpath includes pre-downloaded JARs
+const JAVA_CLASSPATH = process.env.CLASSPATH || '/usr/local/java/lib/*:.';
+
+// --- LOCAL ENGINE (FOR RENDER) ---
 
 async function executeLocal(code, { onOutput, onError, onStatus }, language) {
     onStatus?.('Initializing Local Engine...');
@@ -30,36 +38,84 @@ async function executeLocal(code, { onOutput, onError, onStatus }, language) {
     if (language.startsWith('python')) {
         const scriptPath = path.join(workDir, 'main.py');
         await fs.writeFile(scriptPath, code, 'utf8');
-        const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-        const proc = spawn(pythonCmd, [scriptPath], { cwd: workDir });
+
+        onStatus?.('Running...');
+        const proc = spawn(PYTHON_CMD, [scriptPath], {
+            cwd: workDir,
+            env: { ...process.env, PYTHONUNBUFFERED: '1' }
+        });
+
         proc.stdout.on('data', (data) => onOutput?.(data.toString('utf8')));
         proc.stderr.on('data', (data) => onError?.(data.toString('utf8')));
         proc.on('close', (code) => {
             fs.remove(workDir).catch(() => { });
             onStatus?.(code === 0 ? 'Success' : `Exited with code ${code}`);
         });
+        proc.on('error', (err) => {
+            onError?.(`Failed to start Python: ${err.message}`);
+            onStatus?.('Error');
+        });
+
         return proc;
+
     } else {
+        // Java execution
+
+        // Strip package declaration (not needed for local execution)
         const cleanedCode = code.replace(/^[ \t]*package[ \t]+[a-zA-Z0-9._]+[ \t]*;/gm, '').trim();
+
+        // Extract actual class name from code
         const classMatch = cleanedCode.match(/(?:public\s+)?class\s+(\w+)/);
         const className = classMatch ? classMatch[1] : 'Main';
         const sourceFile = path.join(workDir, `${className}.java`);
+
         await fs.writeFile(sourceFile, cleanedCode, 'utf8');
+
         onStatus?.('Compiling...');
-        await new Promise((resolve) => {
-            execChild(`javac "${sourceFile}"`, (err, stdout, stderr) => {
-                if (err) onError?.(stderr);
-                resolve();
-            });
+
+        const compileOk = await new Promise((resolve) => {
+            execChild(
+                `javac -cp "${JAVA_CLASSPATH}" "${sourceFile}"`,
+                { env: { ...process.env, JAVA_HOME: process.env.JAVA_HOME || '/usr/lib/jvm/default-java' } },
+                (err, stdout, stderr) => {
+                    if (err) {
+                        onError?.(stderr || err.message);
+                        resolve(false);
+                    } else {
+                        resolve(true);
+                    }
+                }
+            );
         });
+
+        if (!compileOk) {
+            await fs.remove(workDir);
+            onStatus?.('Compilation Error');
+            return null;
+        }
+
         onStatus?.('Running...');
-        const proc = spawn('java', ['-cp', workDir, className]);
+
+        const proc = spawn('java', ['-cp', `${workDir}:${JAVA_CLASSPATH}`, className], {
+            cwd: workDir,
+            env: {
+                ...process.env,
+                JAVA_HOME: process.env.JAVA_HOME || '/usr/lib/jvm/default-java',
+                CLASSPATH: `${workDir}:${JAVA_CLASSPATH}`
+            }
+        });
+
         proc.stdout.on('data', (data) => onOutput?.(data.toString('utf8')));
         proc.stderr.on('data', (data) => onError?.(data.toString('utf8')));
         proc.on('close', (code) => {
             fs.remove(workDir).catch(() => { });
             onStatus?.(code === 0 ? 'Success' : `Exited with code ${code}`);
         });
+        proc.on('error', (err) => {
+            onError?.(`Failed to start Java: ${err.message}`);
+            onStatus?.('Error');
+        });
+
         return proc;
     }
 }
@@ -90,8 +146,6 @@ function validateRequest(language, code) {
     assert(code.length <= MAX_CODE_SIZE, 'Code size exceeds maximum limit (128KB)');
 }
 
-// --- DOCKER ENGINE ---
-
 async function executePython(code, { onOutput, onError, onStatus } = {}, version = 'python') {
     validateRequest(version, code);
     if (IS_RENDER) return executeLocal(code, { onOutput, onError, onStatus }, version);
@@ -100,8 +154,6 @@ async function executePython(code, { onOutput, onError, onStatus } = {}, version
     const containerName = SUPPORTED_LANGUAGES[version];
     const runId = uuidv4();
     const scriptPath = path.join(TEMP_DIR, `${runId}.py`);
-
-    // In Docker-land, the temp dir is mounted to /app
     const dockerScriptPath = `/app/${runId}.py`;
 
     await fs.writeFile(scriptPath, code, 'utf8');
@@ -125,20 +177,14 @@ async function executePython(code, { onOutput, onError, onStatus } = {}, version
 
         const stream = await exec.start({ hijack: true, stdin: true });
 
-        // Stream output
         stream.on('data', (chunk) => {
-            // Docker stream header is 8 bytes
-            // [1, 0, 0, 0, size1, size2, size3, size4] for stdout
-            // [2, 0, 0, 0, size1, size2, size3, size4] for stderr
             let offset = 0;
             while (offset < chunk.length) {
                 const type = chunk[offset];
                 const length = chunk.readUInt32BE(offset + 4);
                 const payload = chunk.slice(offset + 8, offset + 8 + length).toString('utf8');
-
                 if (type === 1) onOutput?.(payload);
                 else if (type === 2) onError?.(payload);
-
                 offset += 8 + length;
             }
         });
@@ -151,11 +197,8 @@ async function executePython(code, { onOutput, onError, onStatus } = {}, version
                 resolve(null);
             });
 
-            // Return proc-like object for stdin
             resolve({
-                stdin: {
-                    write: (data) => stream.write(data)
-                },
+                stdin: { write: (data) => stream.write(data) },
                 kill: () => stream.destroy()
             });
         });
@@ -194,7 +237,6 @@ async function executeJava(code, { onOutput, onError, onStatus } = {}, version =
         const containerInfo = await container.inspect();
         assert(containerInfo.State.Running, `Runtime container ${containerName} is not running`);
 
-        // Step 1: Compile
         onStatus?.('Compiling...');
         const compileExec = await container.exec({
             Cmd: ['javac', dockerSourceFile],
@@ -206,7 +248,6 @@ async function executeJava(code, { onOutput, onError, onStatus } = {}, version =
 
         await new Promise((resolve) => {
             compileStream.on('data', (chunk) => {
-                // Header is 8 bytes
                 compileError += chunk.slice(8).toString('utf8');
             });
             compileStream.on('end', resolve);
@@ -221,7 +262,6 @@ async function executeJava(code, { onOutput, onError, onStatus } = {}, version =
             return null;
         }
 
-        // Step 2: Run
         onStatus?.('Running...');
         const runExec = await container.exec({
             Cmd: ['java', '-cp', dockerWorkDir, className],
@@ -238,10 +278,8 @@ async function executeJava(code, { onOutput, onError, onStatus } = {}, version =
                 const type = chunk[offset];
                 const length = chunk.readUInt32BE(offset + 4);
                 const payload = chunk.slice(offset + 8, offset + 8 + length).toString('utf8');
-
                 if (type === 1) onOutput?.(payload);
                 else if (type === 2) onError?.(payload);
-
                 offset += 8 + length;
             }
         });
@@ -255,9 +293,7 @@ async function executeJava(code, { onOutput, onError, onStatus } = {}, version =
             });
 
             resolve({
-                stdin: {
-                    write: (data) => runStream.write(data)
-                },
+                stdin: { write: (data) => runStream.write(data) },
                 kill: () => runStream.destroy()
             });
         });
