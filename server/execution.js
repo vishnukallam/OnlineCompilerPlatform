@@ -40,12 +40,14 @@ async function executeLocal(code, { onOutput, onError, onStatus }, language) {
         });
         return proc;
     } else {
-        const className = 'Main';
+        const cleanedCode = code.replace(/^[ \t]*package[ \t]+[a-zA-Z0-9._]+[ \t]*;/gm, '').trim();
+        const classMatch = cleanedCode.match(/(?:public\s+)?class\s+(\w+)/);
+        const className = classMatch ? classMatch[1] : 'Main';
         const sourceFile = path.join(workDir, `${className}.java`);
-        await fs.writeFile(sourceFile, code, 'utf8');
+        await fs.writeFile(sourceFile, cleanedCode, 'utf8');
         onStatus?.('Compiling...');
         await new Promise((resolve) => {
-            execChild(`javac ${sourceFile}`, (err, stdout, stderr) => {
+            execChild(`javac "${sourceFile}"`, (err, stdout, stderr) => {
                 if (err) onError?.(stderr);
                 resolve();
             });
@@ -174,7 +176,7 @@ async function executeJava(code, { onOutput, onError, onStatus } = {}, version =
 
     const containerName = SUPPORTED_LANGUAGES[version];
     const cleanedCode = code.replace(/^[ \t]*package[ \t]+[a-zA-Z0-9._]+[ \t]*;/gm, '').trim();
-    const classMatch = cleanedCode.match(/public\s+class\s+(\w+)/);
+    const classMatch = cleanedCode.match(/(?:public\s+)?class\s+(\w+)/);
     const className = classMatch ? classMatch[1] : 'Main';
 
     const runId = uuidv4();

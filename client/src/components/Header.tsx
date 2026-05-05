@@ -23,127 +23,113 @@ const Header: React.FC<HeaderProps> = ({
     setCode, xterm, setOutputTab
 }) => {
     return (
-        <header className="glass-header" style={{
-            height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '0 40px', zIndex: 10,
-            transition: 'all 0.4s ease'
+        <header className="md-top-app-bar" style={{
+            height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '0 16px', zIndex: 10,
+            borderBottom: '1px solid var(--md-sys-color-outline-variant)',
+            transition: 'background-color 0.4s var(--md-sys-motion-easing-standard)'
         }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <h1 style={{
                         margin: 0,
-                        fontSize: '1.8rem',
-                        fontWeight: 800,
+                        fontSize: 'var(--md-sys-typescale-title-large-font-size)',
+                        lineHeight: 'var(--md-sys-typescale-title-large-line-height)',
+                        fontWeight: 'var(--md-sys-typescale-title-large-font-weight)',
+                        fontFamily: 'var(--md-sys-typescale-title-large-font-family)',
                         display: 'flex',
-                        alignItems: 'center'
+                        alignItems: 'center',
+                        color: 'var(--md-sys-color-primary)'
                     }}>
-                        <span className="premium-gradient-title">
-                            CodeCompiler
-                        </span>
+                        CodeCompiler
                     </h1>
                     <button
+                        className="md-icon-button"
                         onClick={() => setIsAboutOpen(true)}
-                        style={{
-                            background: 'rgba(255, 255, 255, 0.05)', color: colors.accent,
-                            fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
-                            padding: '6px 12px', borderRadius: '20px', transition: 'all 0.3s',
-                            border: `1px solid ${colors.accent}33`,
-                            textTransform: 'uppercase',
-                            letterSpacing: '1px'
-                        }}
-                        onMouseOver={(e: React.MouseEvent<HTMLButtonElement>) => {
-                            e.currentTarget.style.backgroundColor = `${colors.accent}22`;
-                            e.currentTarget.style.borderColor = colors.accent;
-                        }}
-                        onMouseOut={(e: React.MouseEvent<HTMLButtonElement>) => {
-                            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-                            e.currentTarget.style.borderColor = `${colors.accent}33`;
-                        }}
+                        title="Info"
                     >
-                        Info
+                        <span className="material-symbols-rounded">info</span>
                     </button>
                 </div>
 
-                <div style={{ display: 'flex', gap: '12px' }}>
-                    <select
-                        value={language}
-                        onChange={(e) => {
-                            const lang = e.target.value as Language;
-                            setLanguage(lang);
-                            sessionStorage.setItem('last_language', lang);
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <select
+                            value={language}
+                            onChange={(e) => {
+                                const lang = e.target.value as Language;
+                                setLanguage(lang);
+                                sessionStorage.setItem('last_language', lang);
 
-                            const savedCode = sessionStorage.getItem(`code_${lang}`);
-                            if (savedCode) {
-                                setCode(savedCode);
-                            } else {
-                                setCode(templates[lang]);
-                            }
+                                const savedCode = sessionStorage.getItem(`code_${lang}`);
+                                if (savedCode) {
+                                    setCode(savedCode);
+                                } else {
+                                    setCode(templates[lang]);
+                                }
 
-                            xterm.current?.clear();
-                            setOutputTab('terminal');
-                        }}
-                        style={{
-                            padding: '8px 25px', borderRadius: '30px', 
-                            backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.05)' : '#ffffff',
-                            color: colors.text, border: `1px solid ${colors.border}`, cursor: 'pointer',
-                            fontWeight: 600, outline: 'none', transition: 'all 0.3s ease',
-                            appearance: 'none',
-                            textAlign: 'center'
-                        }}
-                    >
-                        <option value="python3.11">Python 3.11</option>
-                        <option value="python3.10">Python 3.10</option>
-                        <option value="java17">Java 17</option>
-                        <option value="java16">Java 16</option>
-                    </select>
+                                xterm.current?.clear();
+                                setOutputTab('terminal');
+                            }}
+                            style={{
+                                padding: '0 32px 0 16px', 
+                                height: '40px',
+                                borderRadius: 'var(--md-sys-shape-corner-extra-small)', 
+                                backgroundColor: 'transparent',
+                                color: 'var(--md-sys-color-on-surface)', 
+                                border: '1px solid var(--md-sys-color-outline)', 
+                                cursor: 'pointer',
+                                fontSize: 'var(--md-sys-typescale-body-large-font-size)',
+                                fontFamily: 'var(--md-sys-typescale-body-large-font-family)',
+                                outline: 'none', transition: 'border-color 0.2s',
+                                appearance: 'none',
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = 'var(--md-sys-color-primary)'}
+                            onBlur={(e) => e.target.style.borderColor = 'var(--md-sys-color-outline)'}
+                        >
+                            <option value="python3.11" style={{color: 'black'}}>Python 3.11</option>
+                            <option value="python3.10" style={{color: 'black'}}>Python 3.10</option>
+                            <option value="java17" style={{color: 'black'}}>Java 17</option>
+                            <option value="java16" style={{color: 'black'}}>Java 16</option>
+                        </select>
+                        <span className="material-symbols-rounded" style={{ 
+                            position: 'absolute', right: '8px', pointerEvents: 'none', color: 'var(--md-sys-color-on-surface-variant)' 
+                        }}>
+                            arrow_drop_down
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
-                <div
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <button
+                    className="md-icon-button"
                     onClick={toggleTheme}
-                    style={{
-                        width: '50px', height: '24px',
-                        backgroundColor: theme === 'dark' ? '#27293d' : '#e3e4e9',
-                        borderRadius: '20px', position: 'relative', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center',
-                        border: `1px solid ${colors.border}`,
-                        transition: 'all 0.4s ease'
-                    }}
+                    title="Toggle Theme"
                 >
-                    <div style={{
-                        width: '18px', height: '18px',
-                        background: theme === 'dark' ? 'linear-gradient(135deg, #e14eca, #ba54f5)' : '#fff',
-                        borderRadius: '50%',
-                        position: 'absolute', left: theme === 'dark' ? '28px' : '4px',
-                        transition: 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                    }}>
-                    </div>
-                </div>
+                    <span className="material-symbols-rounded">
+                        {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+                    </span>
+                </button>
 
                 <button
                     onClick={runCode}
-                    className="btn-premium"
+                    className="md-button md-button--filled"
                     disabled={isInitializing || isRunning}
                     style={{
-                        padding: '12px 30px', 
+                        opacity: (isInitializing || isRunning) ? 0.38 : 1,
                         cursor: (isInitializing || isRunning) ? 'not-allowed' : 'pointer',
-                        borderRadius: '30px', 
-                        fontSize: '0.9rem',
-                        opacity: (isInitializing || isRunning) ? 0.7 : 1,
-                        display: 'flex', alignItems: 'center', gap: '10px',
-                        textTransform: 'uppercase',
-                        letterSpacing: '1px'
+                        minWidth: '120px'
                     }}
                 >
                     {isRunning ? (
-                        'EXECUTING...'
+                        <>
+                            <span className="md-circular-progress"></span>
+                            Executing...
+                        </>
                     ) : (
                         <>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M8 5v14l11-7z" />
-                            </svg>
+                            <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>play_arrow</span>
                             Execute
                         </>
                     )}

@@ -13,76 +13,104 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, colors }) => {
     return (
         <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex',
+            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
             alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-            backdropFilter: 'blur(8px)', animation: 'fadeIn 0.3s ease'
+            animation: 'fadeIn 0.2s var(--md-sys-motion-easing-standard)'
         }} onClick={onClose}>
             <style>{`
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes dialogOpen { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
       `}</style>
-            <div style={{
-                width: '500px', backgroundColor: colors.surface, borderRadius: '20px',
-                padding: '40px', position: 'relative', border: `1px solid ${colors.border}`,
-                boxShadow: `0 20px 50px ${colors.shadow}`,
-                animation: 'slideUp 0.4s cubic-bezier(0.2, 1, 0.3, 1)',
-                overflow: 'hidden'
+            <div className="md-dialog" style={{
+                width: '400px', maxWidth: '90vw',
+                padding: '24px', position: 'relative',
+                animation: 'dialogOpen 0.3s var(--md-sys-motion-easing-emphasized)',
+                display: 'flex', flexDirection: 'column', gap: '16px'
             }} onClick={(e) => e.stopPropagation()}>
-                {/* Glow behind the modal content */}
-                <div style={{
-                    position: 'absolute', top: '-100px', right: '-100px',
-                    width: '200px', height: '200px', borderRadius: '50%',
-                    background: `radial-gradient(circle, ${colors.accent}22 0%, transparent 70%)`
-                }}></div>
-
+                <span className="material-symbols-rounded" style={{ 
+                    fontSize: '32px', color: 'var(--md-sys-color-primary)', alignSelf: 'center', marginBottom: '8px' 
+                }}>
+                    info
+                </span>
+                
                 <h2 style={{
-                    marginTop: 0, fontSize: '2rem', fontWeight: 800,
-                    color: colors.text, marginBottom: '20px'
-                }}>About <span style={{ color: colors.accent }}>Compiler</span></h2>
+                    margin: 0, 
+                    fontSize: 'var(--md-sys-typescale-headline-small-font-size)', 
+                    fontWeight: 'var(--md-sys-typescale-headline-small-font-weight)',
+                    fontFamily: 'var(--md-sys-typescale-headline-small-font-family)',
+                    color: 'var(--md-sys-color-on-surface)', textAlign: 'center'
+                }}>
+                    About Compiler
+                </h2>
 
                 <p style={{
-                    color: colors.textMuted, lineHeight: 1.7, fontSize: '1rem',
-                    marginBottom: '30px'
+                    margin: 0,
+                    color: 'var(--md-sys-color-on-surface-variant)', 
+                    fontSize: 'var(--md-sys-typescale-body-medium-font-size)',
+                    fontFamily: 'var(--md-sys-typescale-body-medium-font-family)',
+                    lineHeight: 'var(--md-sys-typescale-body-medium-line-height)',
+                    textAlign: 'center'
                 }}>
-                    A premium, high-performance web-based code editor and compiler.
-                    Experience near-instant execution for <strong>Python</strong> via Pyodide
-                    and cloud-powered <strong>Java</strong> execution through Judge0.
+                    A modern web-based code editor and compiler following Material Design 3.
+                    Experience near-instant execution for Python via Pyodide
+                    and cloud-powered Java execution through Judge0.
                 </p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '35px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: colors.accent }}></div>
-                        <span style={{ color: colors.text, fontWeight: 600 }}>In-browser Python (Pyodide)</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px', marginBottom: '16px',
+                    padding: '16px', backgroundColor: 'var(--md-sys-color-surface-container)',
+                    borderRadius: 'var(--md-sys-shape-corner-medium)'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <span className="material-symbols-rounded" style={{ color: 'var(--md-sys-color-primary)' }}>terminal</span>
+                        <span style={{ 
+                            color: 'var(--md-sys-color-on-surface)', 
+                            fontSize: 'var(--md-sys-typescale-body-medium-font-size)',
+                            fontFamily: 'var(--md-sys-typescale-body-medium-font-family)'
+                        }}>In-browser Python (Pyodide)</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: colors.accent }}></div>
-                        <span style={{ color: colors.text, fontWeight: 600 }}>Cloud Java Engine (Judge0)</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <span className="material-symbols-rounded" style={{ color: 'var(--md-sys-color-primary)' }}>cloud</span>
+                        <span style={{ 
+                            color: 'var(--md-sys-color-on-surface)', 
+                            fontSize: 'var(--md-sys-typescale-body-medium-font-size)',
+                            fontFamily: 'var(--md-sys-typescale-body-medium-font-family)'
+                        }}>Cloud Java Engine (Judge0)</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: colors.accent }}></div>
-                        <span style={{ color: colors.text, fontWeight: 600 }}>Visual Data Rendering</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <span className="material-symbols-rounded" style={{ color: 'var(--md-sys-color-primary)' }}>monitoring</span>
+                        <span style={{ 
+                            color: 'var(--md-sys-color-on-surface)', 
+                            fontSize: 'var(--md-sys-typescale-body-medium-font-size)',
+                            fontFamily: 'var(--md-sys-typescale-body-medium-font-family)'
+                        }}>Visual Data Rendering</span>
                     </div>
                 </div>
 
-                <button
-                    onClick={onClose}
-                    style={{
-                        width: '100%', padding: '14px', borderRadius: '12px',
-                        backgroundColor: colors.accent, color: '#000', border: 'none',
-                        fontSize: '1rem', fontWeight: 700, cursor: 'pointer',
-                        transition: 'all 0.3s'
-                    }}
-                    onMouseOver={(e: React.MouseEvent<HTMLButtonElement>) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = `0 5px 15px ${colors.accent}44`;
-                    }}
-                    onMouseOut={(e: React.MouseEvent<HTMLButtonElement>) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = 'none';
-                    }}
-                >
-                    Sounds Great!
-                </button>
+                <div style={{
+                    textAlign: 'center',
+                    marginTop: 'auto',
+                    marginBottom: '8px',
+                    color: 'var(--md-sys-color-on-surface-variant)',
+                    fontSize: '12px',
+                    fontFamily: 'var(--md-sys-typescale-body-medium-font-family)'
+                }}>
+                    &copy; {new Date().getFullYear()} CodeCompiler. All rights reserved.
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+                    <button
+                        className="md-button md-button--text"
+                        onClick={onClose}
+                    >
+                        Close
+                    </button>
+                    <button
+                        className="md-button md-button--filled"
+                        onClick={onClose}
+                    >
+                        Sounds Great!
+                    </button>
+                </div>
             </div>
         </div>
     );
