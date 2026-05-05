@@ -13,7 +13,7 @@ import { useCodeExecution } from './hooks/useCodeExecution';
 // Components
 import Header from './components/Header';
 import EditorContainer from './components/EditorContainer';
-import OutputContainer from './components/OutputContainer';
+import TerminalPanel from './components/Terminal';
 import AboutModal from './components/AboutModal';
 import FileExplorer from './components/FileExplorer';
 
@@ -59,6 +59,15 @@ function App() {
     sessionStorage.setItem('last_language', language);
   }, [language]);
 
+  // Set MD3 CSS variables on :root
+  useEffect(() => {
+    const root = document.documentElement;
+    Object.entries(colors).forEach(([key, value]) => {
+      const cssKey = `--md-sys-color-${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`;
+      root.style.setProperty(cssKey, value as string);
+    });
+  }, [colors]);
+
   // Fix corrupted Java sessionStorage
   useEffect(() => {
 
@@ -84,10 +93,10 @@ function App() {
     const term = new Terminal({
       cursorBlink: true,
       theme: {
-        background: '#1e1e1e',
-        foreground: '#ffffff',
-        cursor: '#47cf73',
-        selectionBackground: '#2196F380',
+        background: colors.surfaceContainerLowest,
+        foreground: colors.onSurface,
+        cursor: colors.primary,
+        selectionBackground: colors.primaryContainer,
       },
       fontSize: 14,
       fontFamily: 'Menlo, Monaco, "Courier New", monospace',
@@ -102,6 +111,17 @@ function App() {
 
     xterm.current = term;
     fitAddon.current = fit;
+
+    term.attachCustomKeyEventHandler((e) => {
+      if (e.ctrlKey && e.code === 'KeyC' && e.type === 'keydown') {
+        const selection = term.getSelection();
+        if (selection) {
+          navigator.clipboard.writeText(selection);
+          return false;
+        }
+      }
+      return true;
+    });
 
     const timer = setTimeout(() => {
 
@@ -145,10 +165,10 @@ function App() {
     if (xterm.current) {
 
       xterm.current.options.theme = {
-        background: theme === 'dark' ? '#1e1e1e' : '#ffffff',
-        foreground: theme === 'dark' ? '#ffffff' : '#202124',
-        cursor: theme === 'dark' ? '#47cf73' : '#2196F3',
-        selectionBackground: '#2196F380',
+        background: colors.surfaceContainerLowest,
+        foreground: colors.onSurface,
+        cursor: colors.primary,
+        selectionBackground: colors.primaryContainer,
       };
 
     }
@@ -158,27 +178,59 @@ function App() {
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   const copyTerminalOutput = () => {
-
     if (xterm.current) {
-
-      xterm.current.selectAll();
       const selection = xterm.current.getSelection();
-
       if (selection) {
-
         navigator.clipboard.writeText(selection);
-
         xterm.current.clearSelection();
-
-        xterm.current.writeln('\x1b[1;32m\r\nOutput Copied to Clipboard!\x1b[0m');
-
+      } else {
+        // If no selection, copy all
+        xterm.current.selectAll();
+        const allText = xterm.current.getSelection();
+        if (allText) {
+          navigator.clipboard.writeText(allText);
+          xterm.current.clearSelection();
+        }
       }
-
     }
-
   };
 
   const clearTerminal = () => xterm.current?.clear();
+
+  const [editorFlex, setEditorFlex] = useState(1.2);
+  const [terminalFlex, setTerminalFlex] = useState(0.8);
+  const isDragging = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current || !containerRef.current) return;
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const padding = 15;
+      const handleWidth = 15;
+      
+      const relativeX = e.clientX - containerRect.left - padding;
+      const totalWidth = containerRect.width - (padding * 2) - handleWidth;
+      
+      let newEditorFlex = relativeX / totalWidth;
+      if (newEditorFlex < 0.2) newEditorFlex = 0.2;
+      if (newEditorFlex > 0.8) newEditorFlex = 0.8;
+      
+      setEditorFlex(newEditorFlex);
+      setTerminalFlex(1 - newEditorFlex);
+    };
+
+    const handleMouseUp = () => {
+      isDragging.current = false;
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   return (
 
@@ -186,91 +238,11 @@ function App() {
       display: 'flex',
       flexDirection: 'column',
       height: '100vh',
-      backgroundColor: colors.bg,
-      color: colors.text,
-      transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+      backgroundColor: 'var(--md-sys-color-background)',
+      color: 'var(--md-sys-color-on-background)',
+      transition: 'background-color 0.3s var(--md-sys-motion-easing-standard), color 0.3s var(--md-sys-motion-easing-standard)',
       overflow: 'hidden'
     }}>
-
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600&display=swap');
-
-        body {
-          margin: 0;
-          padding: 0;
-          overflow: hidden !important;
-          font-family: 'Inter', sans-serif;
-          background: ${colors.bg};
-          background-image: ${theme === 'dark' 
-            ? 'radial-gradient(circle at 50% 50%, #1e1e2f 0%, #171941 100%)' 
-            : 'radial-gradient(circle at 50% 50%, #f4f5f7 0%, #e3e4e9 100%)'};
-        }
-
-        .premium-card {
-          background: ${colors.surface} !important;
-          border-radius: 12px !important;
-          border: 1px solid ${colors.border} !important;
-          box-shadow: ${colors.shadow} !important;
-          backdrop-filter: blur(10px) !important;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        }
-
-        .premium-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45) !important;
-        }
-
-        .premium-gradient-title {
-          background: linear-gradient(to right, ${colors.accent}, #ba54f5) !important;
-          -webkit-background-clip: text !important;
-          -webkit-text-fill-color: transparent !important;
-          font-family: 'Poppins', sans-serif;
-          font-weight: 700;
-          letter-spacing: -0.5px;
-          animation: titleGlow 3s ease-in-out infinite alternate !important;
-        }
-
-        @keyframes titleGlow {
-          from { filter: drop-shadow(0 0 2px ${colors.accent}44); }
-          to { filter: drop-shadow(0 0 8px ${colors.accent}aa); }
-        }
-
-        * {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-
-        *::-webkit-scrollbar {
-          display: none;
-        }
-
-        .glass-header {
-          background: ${colors.headerBg} !important;
-          backdrop-filter: blur(15px) !important;
-          border-bottom: 1px solid ${colors.border} !important;
-          box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important;
-        }
-
-        .btn-premium {
-          background: linear-gradient(135deg, ${colors.accent}, #ba54f5) !important;
-          border: none !important;
-          color: white !important;
-          border-radius: 8px !important;
-          font-weight: 600 !important;
-          transition: all 0.2s ease !important;
-          cursor: pointer !important;
-          box-shadow: 0 4px 15px 0 ${colors.accent}44 !important;
-        }
-
-        .btn-premium:hover {
-           transform: scale(1.05);
-           box-shadow: 0 6px 20px 0 ${colors.accent}66 !important;
-        }
-
-        .btn-premium:active {
-           transform: scale(0.95);
-        }
-      `}</style>
 
       <Header
         language={language}
@@ -294,16 +266,31 @@ function App() {
           theme={theme}
         />
 
-        <div style={{ display: 'flex', flex: 1, minHeight: 0, padding: '15px', gap: '15px' }}>
+        <div ref={containerRef} style={{ display: 'flex', flex: 1, minHeight: 0, padding: '15px' }}>
           <EditorContainer
             language={language}
             theme={theme}
             code={code}
             setCode={setCode}
             colors={colors}
+            flex={editorFlex}
           />
 
-          <OutputContainer
+          <div
+            onMouseDown={() => { isDragging.current = true; }}
+            style={{
+              width: '15px',
+              cursor: 'col-resize',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              userSelect: 'none'
+            }}
+          >
+            <div style={{ width: '4px', height: '30px', backgroundColor: 'var(--md-sys-color-outline-variant)', borderRadius: '2px' }} />
+          </div>
+
+          <TerminalPanel
             theme={theme}
             colors={colors}
             outputTab={outputTab}
@@ -313,6 +300,7 @@ function App() {
             copyTerminalOutput={copyTerminalOutput}
             clearTerminal={clearTerminal}
             language={language}
+            flex={terminalFlex}
           />
         </div>
 
