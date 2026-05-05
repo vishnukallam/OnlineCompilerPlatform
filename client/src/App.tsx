@@ -86,6 +86,7 @@ function App() {
   }, [language]);
 
   // Initialize Terminal (runs only once)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
 
     if (!terminalRef.current || xterm.current) return;
@@ -173,6 +174,7 @@ function App() {
 
     }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme]);
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
