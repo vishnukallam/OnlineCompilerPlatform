@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { ThemeColors } from '../types';
 import { API_URL } from '../constants';
@@ -16,6 +16,8 @@ interface FileInfo {
 
 const FileExplorer: React.FC<FileExplorerProps> = ({ colors, theme }) => {
     const [files, setFiles] = useState<FileInfo[]>([]);
+   const [isUploading, setIsUploading] = useState(false);
+const fileInputRef = useRef<HTMLInputElement>(null);
 
     const fetchFiles = async () => {
         try {
@@ -31,6 +33,25 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ colors, theme }) => {
         const interval = setInterval(fetchFiles, 5000);
         return () => clearInterval(interval);
     }, []);
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        const file = e.target.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+        setIsUploading(true);
+        try {
+            await axios.post(`${API_URL}/api/files/upload`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            fetchFiles();
+        } catch (err) {
+            console.error('Upload failed:', err);
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
 
     const handleDelete = async (filename: string) => {
         if (!window.confirm(`Delete ${filename}?`)) return;
@@ -68,26 +89,46 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ colors, theme }) => {
                 alignItems: 'center',
                 justifyContent: 'space-between'
             }}>
-                <h3 style={{ 
-                    margin: 0, 
-                    fontSize: 'var(--md-sys-typescale-title-small-font-size, 14px)', 
-                    fontWeight: 'var(--md-sys-typescale-title-small-font-weight, 500)', 
-                    color: 'var(--md-sys-color-on-surface-variant)', 
+                <h3 style={{
+                    margin: 0,
+                    fontSize: 'var(--md-sys-typescale-title-small-font-size, 14px)',
+                    fontWeight: 'var(--md-sys-typescale-title-small-font-weight, 500)',
+                    color: 'var(--md-sys-color-on-surface-variant)',
                     fontFamily: 'var(--md-sys-typescale-title-small-font-family, Roboto)',
                     letterSpacing: '0.1px'
                 }}>
                     Files
                 </h3>
+<<<<<<< HEAD
 
+=======
+                <button
+                    className="md-icon-button"
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Upload File"
+                    disabled={isUploading}
+                    style={{ width: '32px', height: '32px' }}
+                >
+                    <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>
+                        {isUploading ? 'hourglass_empty' : 'upload'}
+                    </span>
+                </button>
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
+                    onChange={handleUpload}
+                />
+>>>>>>> e9ed254719f75d32be1cf619ce8e67c1f2e041c9
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px' }}>
                 {files.length === 0 ? (
-                    <div style={{ 
-                        color: 'var(--md-sys-color-on-surface-variant)', 
-                        fontSize: 'var(--md-sys-typescale-body-medium-font-size)', 
-                        textAlign: 'center', 
-                        marginTop: '20px', 
+                    <div style={{
+                        color: 'var(--md-sys-color-on-surface-variant)',
+                        fontSize: 'var(--md-sys-typescale-body-medium-font-size)',
+                        textAlign: 'center',
+                        marginTop: '20px',
                         fontFamily: 'var(--md-sys-typescale-body-medium-font-family)'
                     }}>
                         No files
@@ -95,7 +136,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ colors, theme }) => {
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         {files.map(file => (
-                            <div 
+                            <div
                                 key={file.name}
                                 className="md-list-item"
                                 style={{
@@ -104,24 +145,24 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ colors, theme }) => {
                                     padding: '0 16px'
                                 }}
                             >
-                                <span className="material-symbols-rounded" style={{ 
-                                    color: 'var(--md-sys-color-on-surface-variant)', 
-                                    marginRight: '16px' 
+                                <span className="material-symbols-rounded" style={{
+                                    color: 'var(--md-sys-color-on-surface-variant)',
+                                    marginRight: '16px'
                                 }}>
                                     insert_drive_file
                                 </span>
                                 <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-                                    <span style={{ 
-                                        color: 'var(--md-sys-color-on-surface)', 
-                                        fontSize: 'var(--md-sys-typescale-body-large-font-size)', 
+                                    <span style={{
+                                        color: 'var(--md-sys-color-on-surface)',
+                                        fontSize: 'var(--md-sys-typescale-body-large-font-size)',
                                         fontWeight: 'var(--md-sys-typescale-body-large-font-weight)',
                                         fontFamily: 'var(--md-sys-typescale-body-large-font-family)',
                                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                                     }}>
                                         {file.name}
                                     </span>
-                                    <span style={{ 
-                                        color: 'var(--md-sys-color-on-surface-variant)', 
+                                    <span style={{
+                                        color: 'var(--md-sys-color-on-surface-variant)',
                                         fontSize: 'var(--md-sys-typescale-body-medium-font-size)',
                                         fontFamily: 'var(--md-sys-typescale-body-medium-font-family)'
                                     }}>
@@ -129,7 +170,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ colors, theme }) => {
                                     </span>
                                 </div>
                                 <div style={{ display: 'flex' }}>
-                                    <button 
+                                    <button
                                         className="md-icon-button"
                                         onClick={(e) => { e.stopPropagation(); handleDownload(file.name); }}
                                         title="Download"
@@ -137,7 +178,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ colors, theme }) => {
                                     >
                                         <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>download</span>
                                     </button>
-                                    <button 
+                                    <button
                                         className="md-icon-button"
                                         onClick={(e) => { e.stopPropagation(); handleDelete(file.name); }}
                                         title="Delete"
