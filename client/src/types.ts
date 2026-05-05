@@ -2,17 +2,36 @@ export type Language = 'python' | 'java' | 'python3.10' | 'python3.11' | 'java16
 export type Theme = 'dark' | 'light';
 
 export interface ThemeColors {
-  bg: string;
+  primary: string;
+  onPrimary: string;
+  primaryContainer: string;
+  onPrimaryContainer: string;
+  secondary: string;
+  onSecondary: string;
+  secondaryContainer: string;
+  onSecondaryContainer: string;
+  tertiary: string;
+  onTertiary: string;
+  tertiaryContainer: string;
+  onTertiaryContainer: string;
+  error: string;
+  onError: string;
+  errorContainer: string;
+  onErrorContainer: string;
+  background: string;
+  onBackground: string;
   surface: string;
-  accent: string;
-  text: string;
-  textMuted: string;
-  headerBg: string;
-  buttonColor: string;
-  border: string;
-  shadow: string;
+  onSurface: string;
+  surfaceVariant: string;
+  onSurfaceVariant: string;
+  outline: string;
+  outlineVariant: string;
+  surfaceContainerLowest: string;
+  surfaceContainerLow: string;
+  surfaceContainer: string;
+  surfaceContainerHigh: string;
+  surfaceContainerHighest: string;
   editorTheme: string;
-  premiumShadow?: string;
 }
 
 export type ThemeConfig = Record<Theme, ThemeColors>;
