@@ -4,7 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
-const multer = require("multer");
+
 const path = require("path");
 const fs = require("fs-extra");
 
@@ -18,12 +18,7 @@ const server = http.createServer(app);
 const STORAGE_DIR = path.join(__dirname, "temp"); // Reuse temp as persistent storage
 fs.ensureDirSync(STORAGE_DIR);
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, STORAGE_DIR),
-  filename: (req, file, cb) => cb(null, file.originalname)
-});
 
-const upload = multer({ storage });
 
 /* -------------------- CORS CONFIG -------------------- */
 
@@ -90,10 +85,7 @@ app.get("/api/files", async (req, res) => {
   }
 });
 
-app.post("/api/files/upload", upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-  res.json({ message: "File uploaded successfully", file: req.file.originalname });
-});
+
 
 app.get("/api/files/download/:filename", (req, res) => {
   const filePath = path.join(STORAGE_DIR, req.params.filename);

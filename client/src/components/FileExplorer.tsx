@@ -78,21 +78,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ colors, theme }) => {
                 }}>
                     Files
                 </h3>
-                <button
-                    className="md-icon-button"
-                    onClick={() => fileInputRef.current?.click()}
-                    title="Upload File"
-                    disabled={isUploading}
-                    style={{ width: '32px', height: '32px' }}
-                >
-                    <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>upload</span>
-                </button>
-                <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    style={{ display: 'none' }} 
-                    onChange={handleUpload}
-                />
+
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px' }}>
@@ -104,7 +90,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ colors, theme }) => {
                         marginTop: '20px', 
                         fontFamily: 'var(--md-sys-typescale-body-medium-font-family)'
                     }}>
-                        No files uploaded
+                        No files
                     </div>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
