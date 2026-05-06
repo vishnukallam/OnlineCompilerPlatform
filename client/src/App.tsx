@@ -15,7 +15,6 @@ import Header from './components/Header';
 import EditorContainer from './components/EditorContainer';
 import TerminalPanel from './components/Terminal';
 import AboutModal from './components/AboutModal';
-import FileExplorer from './components/FileExplorer';
 
 function App() {
 
@@ -264,11 +263,6 @@ function App() {
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         
-        <FileExplorer 
-          colors={colors}
-          theme={theme}
-        />
-
         <div ref={containerRef} style={{ display: 'flex', flex: 1, minHeight: 0, padding: '15px' }}>
           <EditorContainer
             language={language}
