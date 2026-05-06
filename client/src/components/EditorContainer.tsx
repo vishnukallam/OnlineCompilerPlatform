@@ -10,10 +10,11 @@ interface EditorContainerProps {
     setCode: (code: string) => void;
     colors: ThemeColors;
     flex?: number;
+    isMobile?: boolean;
 }
 
 const EditorContainer: React.FC<EditorContainerProps> = ({
-    language, theme, code, setCode, colors, flex = 1.2
+    language, theme, code, setCode, colors, flex = 1.2, isMobile = false
 }) => {
     return (
         <div className="md-surface" style={{
@@ -21,13 +22,17 @@ const EditorContainer: React.FC<EditorContainerProps> = ({
             backgroundColor: 'var(--md-sys-color-surface-container)',
             border: '1px solid var(--md-sys-color-outline-variant)',
             display: 'flex', flexDirection: 'column',
-            transition: 'background-color 0.4s var(--md-sys-motion-easing-standard)'
+            transition: 'background-color 0.4s var(--md-sys-motion-easing-standard)',
+            borderRadius: isMobile ? 'var(--md-sys-shape-corner-medium)' : 'var(--md-sys-shape-corner-large)',
+            minHeight: 0,
         }}>
             <div style={{
-                height: '48px', display: 'flex', alignItems: 'center',
+                height: isMobile ? '44px' : '48px',
+                display: 'flex', alignItems: 'center',
                 backgroundColor: 'var(--md-sys-color-surface-container-high)',
                 borderBottom: '1px solid var(--md-sys-color-outline-variant)',
-                padding: '0 16px'
+                padding: isMobile ? '0 12px' : '0 16px',
+                flexShrink: 0,
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                     <div style={{
@@ -56,14 +61,18 @@ const EditorContainer: React.FC<EditorContainerProps> = ({
                                 URL.revokeObjectURL(url);
                             }
                         }}
-                        style={{ height: '32px', padding: '0 12px' }}
+                        style={{
+                            height: '32px',
+                            padding: '0 12px',
+                            WebkitTapHighlightColor: 'transparent',
+                        }}
                     >
                         <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>save</span>
-                        Save
+                        {!isMobile && 'Save'}
                     </button>
                 </div>
             </div>
-            <div style={{ flex: 1, position: 'relative', padding: '0' }}>
+            <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
                 <Editor
                     height="100%"
                     language={language.replace(/[0-9.]/g, '')}
@@ -72,17 +81,19 @@ const EditorContainer: React.FC<EditorContainerProps> = ({
                     onChange={(value) => setCode(value || '')}
                     options={{
                         minimap: { enabled: false },
-                        fontSize: 14,
-                        padding: { top: 16 },
+                        fontSize: isMobile ? 13 : 14,
+                        padding: { top: 12 },
                         scrollBeyondLastLine: false,
                         automaticLayout: true,
-                        fontFamily: 'var(--md-sys-typescale-body-large-font-family)',
+                        fontFamily: 'Menlo, Monaco, "Courier New", monospace',
                         cursorBlinking: 'smooth',
                         cursorSmoothCaretAnimation: 'on',
                         renderLineHighlight: 'all',
                         lineHeight: 1.6,
-                        lineNumbers: 'on',
-                        scrollbar: { vertical: 'hidden', horizontal: 'hidden' }
+                        lineNumbers: isMobile ? 'off' : 'on',
+                        scrollbar: { vertical: 'hidden', horizontal: 'hidden' },
+                        wordWrap: isMobile ? 'on' : 'off',
+                        folding: !isMobile,
                     }}
                 />
             </div>
