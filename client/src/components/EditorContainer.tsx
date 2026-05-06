@@ -27,12 +27,10 @@ const EditorContainer: React.FC<EditorContainerProps> = ({
             minHeight: 0,
         }}>
             <div style={{
-                height: isMobile ? '44px' : '48px',
-                display: 'flex', alignItems: 'center',
+                height: isMobile ? '44px' : '48px', display: 'flex', alignItems: 'center',
                 backgroundColor: 'var(--md-sys-color-surface-container-high)',
                 borderBottom: '1px solid var(--md-sys-color-outline-variant)',
-                padding: isMobile ? '0 12px' : '0 16px',
-                flexShrink: 0,
+                padding: isMobile ? '0 12px' : '0 16px', flexShrink: 0,
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                     <div style={{
@@ -42,9 +40,7 @@ const EditorContainer: React.FC<EditorContainerProps> = ({
                         color: 'var(--md-sys-color-on-surface)',
                         display: 'flex', alignItems: 'center', gap: '8px'
                     }}>
-                        <span className="material-symbols-rounded" style={{ color: 'var(--md-sys-color-primary)', fontSize: '18px' }}>
-                            code
-                        </span>
+                        <span className="material-symbols-rounded" style={{ color: 'var(--md-sys-color-primary)', fontSize: '18px' }}>code</span>
                         {getFileName(language)}
                     </div>
                     <button
@@ -55,17 +51,11 @@ const EditorContainer: React.FC<EditorContainerProps> = ({
                                 const blob = new Blob([code], { type: 'text/plain' });
                                 const url = URL.createObjectURL(blob);
                                 const a = document.createElement('a');
-                                a.href = url;
-                                a.download = filename;
-                                a.click();
+                                a.href = url; a.download = filename; a.click();
                                 URL.revokeObjectURL(url);
                             }
                         }}
-                        style={{
-                            height: '32px',
-                            padding: '0 12px',
-                            WebkitTapHighlightColor: 'transparent',
-                        }}
+                        style={{ height: '32px', padding: '0 12px', WebkitTapHighlightColor: 'transparent' }}
                     >
                         <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>save</span>
                         {!isMobile && 'Save'}
