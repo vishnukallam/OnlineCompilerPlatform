@@ -58,14 +58,35 @@
   --md-sys-motion-easing-standard-decelerate: cubic-bezier(0.0, 0.0, 0.0, 1.0);
 }
 
-body {
+/* Prevent iOS from zooming on input focus */
+@media (max-width: 767px) {
+  select, input, textarea {
+    font-size: 16px !important;
+  }
+}
+
+html, body {
   margin: 0;
   padding: 0;
   overflow: hidden;
+  /* Use dvh so the address bar is accounted for on mobile */
+  height: 100%;
+  height: -webkit-fill-available;
+}
+
+body {
   font-family: var(--md-sys-typescale-body-large-font-family);
   background-color: var(--md-sys-color-background);
   color: var(--md-sys-color-on-background);
   transition: background-color 0.3s var(--md-sys-motion-easing-standard), color 0.3s var(--md-sys-motion-easing-standard);
+  /* Prevent iOS bounce scroll */
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+#root {
+  height: 100%;
+  height: 100dvh;
 }
 
 * {
@@ -112,6 +133,8 @@ body {
   position: relative;
   overflow: hidden;
   transition: background-color 0.2s var(--md-sys-motion-easing-standard), box-shadow 0.2s var(--md-sys-motion-easing-standard);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .md-button::before {
@@ -166,6 +189,8 @@ body {
   position: relative;
   overflow: hidden;
   transition: background-color 0.2s var(--md-sys-motion-easing-standard);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .md-icon-button::before {
   content: '';
@@ -236,4 +261,10 @@ body {
 
 @keyframes md-progress-spin {
   to { transform: rotate(360deg); }
+}
+
+/* Running indicator pulse */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
