@@ -3,14 +3,9 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 
-// Types & Constants
 import { Language, Theme } from './types';
 import { templates, themeConfig } from './constants';
-
-// Hooks
 import { useCodeExecution } from './hooks/useCodeExecution';
-
-// Components
 import Header from './components/Header';
 import EditorContainer from './components/EditorContainer';
 import TerminalPanel from './components/Terminal';
@@ -33,8 +28,6 @@ function App() {
   const [outputTab, setOutputTab] = useState<'terminal' | 'visuals'>('terminal');
   const [plotImage, setPlotImage] = useState<string | null>(null);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
-
-  // Mobile: which panel is active
   const [mobilePanel, setMobilePanel] = useState<'editor' | 'terminal'>('editor');
   const [isMobile, setIsMobile] = useState(false);
 
@@ -45,14 +38,9 @@ function App() {
   const colors = themeConfig[theme];
 
   const { isRunning, isInitializing, initPyodide, runCode } = useCodeExecution(
-    language,
-    code,
-    xterm,
-    setPlotImage,
-    setOutputTab
+    language, code, xterm, setPlotImage, setOutputTab
   );
 
-  // Detect mobile viewport
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -60,23 +48,19 @@ function App() {
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  // On mobile: auto-switch to terminal when code runs
   const handleRunCode = () => {
     if (isMobile) setMobilePanel('terminal');
     runCode();
   };
 
-  // Save code whenever it changes
   useEffect(() => {
     sessionStorage.setItem(`code_${language}`, code);
   }, [code, language]);
 
-  // Save last selected language
   useEffect(() => {
     sessionStorage.setItem('last_language', language);
   }, [language]);
 
-  // Set MD3 CSS variables on :root
   useEffect(() => {
     const root = document.documentElement;
     Object.entries(colors).forEach(([key, value]) => {
@@ -85,21 +69,16 @@ function App() {
     });
   }, [colors]);
 
-  // Fix corrupted Java sessionStorage
   useEffect(() => {
     const javaCode = sessionStorage.getItem('code_java');
     if (javaCode === templates.python) {
       sessionStorage.setItem('code_java', templates.java);
-      if (language === 'java') {
-        setCode(templates.java);
-      }
+      if (language === 'java') setCode(templates.java);
     }
   }, [language]);
 
-  // Initialize Terminal (runs only once)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
-
     if (!terminalRef.current || xterm.current) return;
 
     const term = new Terminal({
@@ -119,17 +98,13 @@ function App() {
     const fit = new FitAddon();
     term.loadAddon(fit);
     term.open(terminalRef.current);
-
     xterm.current = term;
     fitAddon.current = fit;
 
     term.attachCustomKeyEventHandler((e) => {
       if (e.ctrlKey && e.code === 'KeyC' && e.type === 'keydown') {
         const selection = term.getSelection();
-        if (selection) {
-          navigator.clipboard.writeText(selection);
-          return false;
-        }
+        if (selection) { navigator.clipboard.writeText(selection); return false; }
       }
       return true;
     });
@@ -147,7 +122,6 @@ function App() {
     });
 
     resizeObserver.observe(terminalRef.current);
-
     term.writeln('\x1b[1;32mCode Compiler Ready\x1b[0m');
     initPyodide();
 
@@ -158,11 +132,9 @@ function App() {
       xterm.current = null;
       fitAddon.current = null;
     };
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initPyodide]);
 
-  // Update terminal theme dynamically
   useEffect(() => {
     if (xterm.current) {
       xterm.current.options.theme = {
@@ -186,17 +158,13 @@ function App() {
       } else {
         xterm.current.selectAll();
         const allText = xterm.current.getSelection();
-        if (allText) {
-          navigator.clipboard.writeText(allText);
-          xterm.current.clearSelection();
-        }
+        if (allText) { navigator.clipboard.writeText(allText); xterm.current.clearSelection(); }
       }
     }
   };
 
   const clearTerminal = () => xterm.current?.clear();
 
-  // Desktop: resizable panels
   const [editorFlex, setEditorFlex] = useState(1.2);
   const [terminalFlex, setTerminalFlex] = useState(0.8);
   const isDragging = useRef(false);
@@ -229,7 +197,6 @@ function App() {
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      height: '100vh',
       height: '100dvh',
       backgroundColor: 'var(--md-sys-color-background)',
       color: 'var(--md-sys-color-on-background)',
@@ -238,22 +205,13 @@ function App() {
     }}>
 
       <Header
-        language={language}
-        setLanguage={setLanguage}
-        theme={theme}
-        toggleTheme={toggleTheme}
-        runCode={handleRunCode}
-        isRunning={isRunning}
-        isInitializing={isInitializing}
-        setIsAboutOpen={setIsAboutOpen}
-        colors={colors}
-        setCode={setCode}
-        xterm={xterm}
-        setOutputTab={setOutputTab}
-        isMobile={isMobile}
+        language={language} setLanguage={setLanguage} theme={theme}
+        toggleTheme={toggleTheme} runCode={handleRunCode} isRunning={isRunning}
+        isInitializing={isInitializing} setIsAboutOpen={setIsAboutOpen}
+        colors={colors} setCode={setCode} xterm={xterm}
+        setOutputTab={setOutputTab} isMobile={isMobile}
       />
 
-      {/* Mobile Tab Bar */}
       {isMobile && (
         <div style={{
           display: 'flex',
@@ -266,22 +224,14 @@ function App() {
               key={panel}
               onClick={() => setMobilePanel(panel)}
               style={{
-                flex: 1,
-                height: '44px',
-                border: 'none',
-                background: 'none',
-                cursor: 'pointer',
+                flex: 1, height: '44px', border: 'none', background: 'none', cursor: 'pointer',
                 color: mobilePanel === panel ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)',
                 borderBottom: mobilePanel === panel ? '3px solid var(--md-sys-color-primary)' : '3px solid transparent',
                 fontFamily: 'var(--md-sys-typescale-label-large-font-family)',
                 fontSize: 'var(--md-sys-typescale-label-large-font-size)',
                 fontWeight: 'var(--md-sys-typescale-label-large-font-weight)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                transition: 'all 0.2s',
-                WebkitTapHighlightColor: 'transparent',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                gap: '6px', transition: 'all 0.2s', WebkitTapHighlightColor: 'transparent',
               }}
             >
               <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>
@@ -290,11 +240,9 @@ function App() {
               {panel === 'editor' ? 'Editor' : 'Output'}
               {panel === 'terminal' && isRunning && (
                 <span style={{
-                  width: 7, height: 7,
-                  borderRadius: '50%',
+                  width: 7, height: 7, borderRadius: '50%',
                   backgroundColor: 'var(--md-sys-color-primary)',
-                  display: 'inline-block',
-                  animation: 'pulse 1s infinite'
+                  display: 'inline-block', animation: 'pulse 1s infinite'
                 }} />
               )}
             </button>
@@ -303,99 +251,52 @@ function App() {
       )}
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-
         {isMobile ? (
           <div style={{ flex: 1, minHeight: 0, padding: '8px', display: 'flex', flexDirection: 'column' }}>
-            {/* Keep both mounted so terminal stays alive; toggle visibility */}
             <div style={{
-              flex: 1, minHeight: 0,
-              display: 'flex', flexDirection: 'column',
+              flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
               visibility: mobilePanel === 'editor' ? 'visible' : 'hidden',
               position: mobilePanel === 'editor' ? 'relative' : 'absolute',
               width: mobilePanel === 'editor' ? '100%' : '0',
               height: mobilePanel === 'editor' ? '100%' : '0',
               overflow: 'hidden',
             }}>
-              <EditorContainer
-                language={language}
-                theme={theme}
-                code={code}
-                setCode={setCode}
-                colors={colors}
-                flex={1}
-                isMobile={true}
-              />
+              <EditorContainer language={language} theme={theme} code={code}
+                setCode={setCode} colors={colors} flex={1} isMobile={true} />
             </div>
             <div style={{
-              flex: 1, minHeight: 0,
-              display: 'flex', flexDirection: 'column',
+              flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
               visibility: mobilePanel === 'terminal' ? 'visible' : 'hidden',
               position: mobilePanel === 'terminal' ? 'relative' : 'absolute',
               width: mobilePanel === 'terminal' ? '100%' : '0',
               height: mobilePanel === 'terminal' ? '100%' : '0',
               overflow: 'hidden',
             }}>
-              <TerminalPanel
-                theme={theme}
-                colors={colors}
-                outputTab={outputTab}
-                setOutputTab={setOutputTab}
-                plotImage={plotImage}
-                terminalRef={terminalRef}
-                copyTerminalOutput={copyTerminalOutput}
-                clearTerminal={clearTerminal}
-                language={language}
-                flex={1}
-              />
+              <TerminalPanel theme={theme} colors={colors} outputTab={outputTab}
+                setOutputTab={setOutputTab} plotImage={plotImage} terminalRef={terminalRef}
+                copyTerminalOutput={copyTerminalOutput} clearTerminal={clearTerminal}
+                language={language} flex={1} />
             </div>
           </div>
         ) : (
           <div ref={containerRef} style={{ display: 'flex', flex: 1, minHeight: 0, padding: '15px' }}>
-            <EditorContainer
-              language={language}
-              theme={theme}
-              code={code}
-              setCode={setCode}
-              colors={colors}
-              flex={editorFlex}
-              isMobile={false}
-            />
+            <EditorContainer language={language} theme={theme} code={code}
+              setCode={setCode} colors={colors} flex={editorFlex} isMobile={false} />
             <div
               onMouseDown={() => { isDragging.current = true; }}
-              style={{
-                width: '15px',
-                cursor: 'col-resize',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                userSelect: 'none'
-              }}
+              style={{ width: '15px', cursor: 'col-resize', display: 'flex', alignItems: 'center', justifyContent: 'center', userSelect: 'none' }}
             >
               <div style={{ width: '4px', height: '30px', backgroundColor: 'var(--md-sys-color-outline-variant)', borderRadius: '2px' }} />
             </div>
-            <TerminalPanel
-              theme={theme}
-              colors={colors}
-              outputTab={outputTab}
-              setOutputTab={setOutputTab}
-              plotImage={plotImage}
-              terminalRef={terminalRef}
-              copyTerminalOutput={copyTerminalOutput}
-              clearTerminal={clearTerminal}
-              language={language}
-              flex={terminalFlex}
-            />
+            <TerminalPanel theme={theme} colors={colors} outputTab={outputTab}
+              setOutputTab={setOutputTab} plotImage={plotImage} terminalRef={terminalRef}
+              copyTerminalOutput={copyTerminalOutput} clearTerminal={clearTerminal}
+              language={language} flex={terminalFlex} />
           </div>
         )}
-
       </div>
 
-      <AboutModal
-        isOpen={isAboutOpen}
-        onClose={() => setIsAboutOpen(false)}
-        colors={colors}
-      />
-
+      <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} colors={colors} />
     </div>
   );
 }
