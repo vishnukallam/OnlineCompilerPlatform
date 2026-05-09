@@ -27,15 +27,15 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, colors }) => {
                 animation: 'dialogOpen 0.3s var(--md-sys-motion-easing-emphasized)',
                 display: 'flex', flexDirection: 'column', gap: '16px'
             }} onClick={(e) => e.stopPropagation()}>
-                <span className="material-symbols-rounded" style={{ 
-                    fontSize: '32px', color: 'var(--md-sys-color-primary)', alignSelf: 'center', marginBottom: '8px' 
+                <span className="material-symbols-rounded" style={{
+                    fontSize: '32px', color: 'var(--md-sys-color-primary)', alignSelf: 'center', marginBottom: '8px'
                 }}>
                     info
                 </span>
-                
+
                 <h2 style={{
-                    margin: 0, 
-                    fontSize: 'var(--md-sys-typescale-headline-small-font-size)', 
+                    margin: 0,
+                    fontSize: 'var(--md-sys-typescale-headline-small-font-size)',
                     fontWeight: 'var(--md-sys-typescale-headline-small-font-weight)',
                     fontFamily: 'var(--md-sys-typescale-headline-small-font-family)',
                     color: 'var(--md-sys-color-on-surface)', textAlign: 'center'
@@ -45,7 +45,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, colors }) => {
 
                 <p style={{
                     margin: 0,
-                    color: 'var(--md-sys-color-on-surface-variant)', 
+                    color: 'var(--md-sys-color-on-surface-variant)',
                     fontSize: 'var(--md-sys-typescale-body-medium-font-size)',
                     fontFamily: 'var(--md-sys-typescale-body-medium-font-family)',
                     lineHeight: 'var(--md-sys-typescale-body-medium-line-height)',
@@ -56,30 +56,31 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, colors }) => {
                     and cloud-powered Java execution through Judge0.
                 </p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px', marginBottom: '16px',
+                <div style={{
+                    display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px', marginBottom: '16px',
                     padding: '16px', backgroundColor: 'var(--md-sys-color-surface-container)',
                     borderRadius: 'var(--md-sys-shape-corner-medium)'
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <span className="material-symbols-rounded" style={{ color: 'var(--md-sys-color-primary)' }}>terminal</span>
-                        <span style={{ 
-                            color: 'var(--md-sys-color-on-surface)', 
+                        <span style={{
+                            color: 'var(--md-sys-color-on-surface)',
                             fontSize: 'var(--md-sys-typescale-body-medium-font-size)',
                             fontFamily: 'var(--md-sys-typescale-body-medium-font-family)'
                         }}>In-browser Python (Pyodide)</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <span className="material-symbols-rounded" style={{ color: 'var(--md-sys-color-primary)' }}>cloud</span>
-                        <span style={{ 
-                            color: 'var(--md-sys-color-on-surface)', 
+                        <span style={{
+                            color: 'var(--md-sys-color-on-surface)',
                             fontSize: 'var(--md-sys-typescale-body-medium-font-size)',
                             fontFamily: 'var(--md-sys-typescale-body-medium-font-family)'
                         }}>Cloud Java Engine (Judge0)</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <span className="material-symbols-rounded" style={{ color: 'var(--md-sys-color-primary)' }}>monitoring</span>
-                        <span style={{ 
-                            color: 'var(--md-sys-color-on-surface)', 
+                        <span style={{
+                            color: 'var(--md-sys-color-on-surface)',
                             fontSize: 'var(--md-sys-typescale-body-medium-font-size)',
                             fontFamily: 'var(--md-sys-typescale-body-medium-font-family)'
                         }}>Visual Data Rendering</span>
