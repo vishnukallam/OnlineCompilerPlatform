@@ -105,22 +105,25 @@ export const useCodeExecution = (
         const disposable = terminal.onData((data: string) => {
 
             if (isRunning && socketRef.current?.connected) {
+                // Process character by character to support multi-character pastes
+                for (let i = 0; i < data.length; i++) {
+                    const char = data[i];
 
-                if (data === '\r') {
-                    terminal.write('\r\n');
-                    socketRef.current?.emit('input', inputBuffer.current + '\n');
-                    inputBuffer.current = '';
-                } else if (data === '\u007f') { // Backspace
-                    if (inputBuffer.current.length > 0) {
-                        inputBuffer.current = inputBuffer.current.slice(0, -1);
-                        terminal.write('\b \b');
+                    if (char === '\r' || char === '\n') {
+                        terminal.write('\r\n');
+                        socketRef.current?.emit('input', inputBuffer.current + '\n');
+                        inputBuffer.current = '';
+                    } else if (char === '\u007f' || char === '\b') { // Backspace
+                        if (inputBuffer.current.length > 0) {
+                            inputBuffer.current = inputBuffer.current.slice(0, -1);
+                            terminal.write('\b \b');
+                        }
+                    } else if (char.charCodeAt(0) >= 32) {
+                        // Only allow printable characters to be typed or pasted
+                        inputBuffer.current += char;
+                        terminal.write(char);
                     }
-                } else if (data.length === 1 && data.charCodeAt(0) >= 32) {
-                    // Only allow printable characters to be typed
-                    inputBuffer.current += data;
-                    terminal.write(data);
                 }
-
             }
 
         });
