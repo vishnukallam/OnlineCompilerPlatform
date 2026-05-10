@@ -29,7 +29,7 @@ function App() {
   const [plotImage, setPlotImage] = useState<string | null>(null);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<'editor' | 'terminal'>('editor');
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
 
   const terminalRef = useRef<HTMLDivElement>(null);
   const xterm = useRef<Terminal | null>(null);
@@ -43,7 +43,6 @@ function App() {
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
-    check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
@@ -251,49 +250,42 @@ function App() {
       )}
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-        {isMobile ? (
-          <div style={{ flex: 1, minHeight: 0, padding: '8px', display: 'flex', flexDirection: 'column' }}>
-            <div style={{
-              flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
-              visibility: mobilePanel === 'editor' ? 'visible' : 'hidden',
-              position: mobilePanel === 'editor' ? 'relative' : 'absolute',
-              width: mobilePanel === 'editor' ? '100%' : '0',
-              height: mobilePanel === 'editor' ? '100%' : '0',
-              overflow: 'hidden',
-            }}>
-              <EditorContainer language={language} theme={theme} code={code}
-                setCode={setCode} colors={colors} flex={1} isMobile={true} />
-            </div>
-            <div style={{
-              flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
-              visibility: mobilePanel === 'terminal' ? 'visible' : 'hidden',
-              position: mobilePanel === 'terminal' ? 'relative' : 'absolute',
-              width: mobilePanel === 'terminal' ? '100%' : '0',
-              height: mobilePanel === 'terminal' ? '100%' : '0',
-              overflow: 'hidden',
-            }}>
-              <TerminalPanel theme={theme} colors={colors} outputTab={outputTab}
-                setOutputTab={setOutputTab} plotImage={plotImage} terminalRef={terminalRef}
-                copyTerminalOutput={copyTerminalOutput} clearTerminal={clearTerminal}
-                language={language} flex={1} />
-            </div>
-          </div>
-        ) : (
-          <div ref={containerRef} style={{ display: 'flex', flex: 1, minHeight: 0, padding: '15px' }}>
+        <div ref={containerRef} style={{ display: 'flex', flex: 1, minHeight: 0, padding: isMobile ? '8px' : '15px', position: 'relative' }}>
+          <div style={{
+            flex: isMobile ? 1 : editorFlex, minHeight: 0, display: 'flex', flexDirection: 'column',
+            visibility: (!isMobile || mobilePanel === 'editor') ? 'visible' : 'hidden',
+            position: (isMobile && mobilePanel !== 'editor') ? 'absolute' : 'relative',
+            width: (isMobile && mobilePanel !== 'editor') ? '0' : (isMobile ? 'calc(100% - 16px)' : 'auto'),
+            height: (isMobile && mobilePanel !== 'editor') ? '0' : (isMobile ? 'calc(100% - 16px)' : 'auto'),
+            overflow: 'hidden',
+          }}>
             <EditorContainer language={language} theme={theme} code={code}
-              setCode={setCode} colors={colors} flex={editorFlex} isMobile={false} />
+              setCode={setCode} colors={colors} flex={1} isMobile={isMobile} />
+          </div>
+
+          {!isMobile && (
             <div
               onMouseDown={() => { isDragging.current = true; }}
               style={{ width: '15px', cursor: 'col-resize', display: 'flex', alignItems: 'center', justifyContent: 'center', userSelect: 'none' }}
             >
               <div style={{ width: '4px', height: '30px', backgroundColor: 'var(--md-sys-color-outline-variant)', borderRadius: '2px' }} />
             </div>
+          )}
+
+          <div style={{
+            flex: isMobile ? 1 : terminalFlex, minHeight: 0, display: 'flex', flexDirection: 'column',
+            visibility: (!isMobile || mobilePanel === 'terminal') ? 'visible' : 'hidden',
+            position: (isMobile && mobilePanel !== 'terminal') ? 'absolute' : 'relative',
+            width: (isMobile && mobilePanel !== 'terminal') ? '0' : (isMobile ? 'calc(100% - 16px)' : 'auto'),
+            height: (isMobile && mobilePanel !== 'terminal') ? '0' : (isMobile ? 'calc(100% - 16px)' : 'auto'),
+            overflow: 'hidden',
+          }}>
             <TerminalPanel theme={theme} colors={colors} outputTab={outputTab}
               setOutputTab={setOutputTab} plotImage={plotImage} terminalRef={terminalRef}
               copyTerminalOutput={copyTerminalOutput} clearTerminal={clearTerminal}
-              language={language} flex={terminalFlex} />
+              language={language} flex={1} />
           </div>
-        )}
+        </div>
       </div>
 
       <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} colors={colors} />
