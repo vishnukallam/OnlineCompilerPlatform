@@ -9,6 +9,7 @@ interface TerminalPanelProps {
     plotImage: string | null;
     terminalRef: React.RefObject<HTMLDivElement>;
     copyTerminalOutput: () => void;
+    pasteIntoTerminal: () => void;
     clearTerminal: () => void;
     language: Language;
     flex?: number;
@@ -16,7 +17,7 @@ interface TerminalPanelProps {
 
 const TerminalPanel: React.FC<TerminalPanelProps> = ({
     theme, colors, outputTab, setOutputTab, plotImage,
-    terminalRef, copyTerminalOutput, clearTerminal, language, flex = 0.8
+    terminalRef, copyTerminalOutput, pasteIntoTerminal, clearTerminal, language, flex = 0.8
 }) => {
     return (
         <div className="md-surface" style={{
@@ -73,6 +74,13 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
                     )}
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                        className="md-icon-button"
+                        onClick={pasteIntoTerminal}
+                        title="Paste"
+                    >
+                        <span className="material-symbols-rounded">content_paste</span>
+                    </button>
                     <button
                         className="md-icon-button"
                         onClick={copyTerminalOutput}
