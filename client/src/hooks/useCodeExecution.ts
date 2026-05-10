@@ -94,6 +94,8 @@ export const useCodeExecution = (
     }, [setPlotImage, setOutputTab, xterm]); // API_URL is a module constant, setIsRunning is stable
 
     // Enable terminal keyboard input forwarding (for stdin programs)
+    const inputBuffer = useRef<string>('');
+
     useEffect(() => {
 
         if (!xterm.current) return;
@@ -105,12 +107,19 @@ export const useCodeExecution = (
             if (isRunning && socketRef.current?.connected) {
 
                 if (data === '\r') {
-                    terminal.write('\n');
-                } else {
+                    terminal.write('\r\n');
+                    socketRef.current?.emit('input', inputBuffer.current + '\n');
+                    inputBuffer.current = '';
+                } else if (data === '\u007f') { // Backspace
+                    if (inputBuffer.current.length > 0) {
+                        inputBuffer.current = inputBuffer.current.slice(0, -1);
+                        terminal.write('\b \b');
+                    }
+                } else if (data.length === 1 && data.charCodeAt(0) >= 32) {
+                    // Only allow printable characters to be typed
+                    inputBuffer.current += data;
                     terminal.write(data);
                 }
-
-                socketRef.current?.emit('input', data);
 
             }
 
