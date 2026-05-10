@@ -95,27 +95,79 @@ export const useCodeExecution = (
 
     // Enable terminal keyboard input forwarding (for stdin programs)
     const inputBuffer = useRef<string>('');
+    const cursorIndex = useRef<number>(0);
 
     const handleInput = useCallback((data: string) => {
         if (!isRunning || !socketRef.current?.connected || !xterm.current) return;
         const terminal = xterm.current;
 
-        for (let i = 0; i < data.length; i++) {
+        let i = 0;
+        while (i < data.length) {
             const char = data[i];
 
-            if (char === '\r' || char === '\n') {
+            if (char === '\x1b') {
+                if (i + 2 < data.length && data[i + 1] === '[') {
+                    const next = data[i + 2];
+                    if (next === 'D') { // Left Arrow
+                        if (cursorIndex.current > 0) {
+                            cursorIndex.current--;
+                            terminal.write('\x1b[D');
+                        }
+                        i += 3; continue;
+                    } else if (next === 'C') { // Right Arrow
+                        if (cursorIndex.current < inputBuffer.current.length) {
+                            cursorIndex.current++;
+                            terminal.write('\x1b[C');
+                        }
+                        i += 3; continue;
+                    } else if (next === 'A' || next === 'B') { // Up / Down Arrow
+                        i += 3; continue;
+                    } else if (next === '3' && i + 3 < data.length && data[i + 3] === '~') { // Delete
+                        if (cursorIndex.current < inputBuffer.current.length) {
+                            inputBuffer.current = inputBuffer.current.slice(0, cursorIndex.current) + inputBuffer.current.slice(cursorIndex.current + 1);
+                            terminal.write(inputBuffer.current.slice(cursorIndex.current) + ' ');
+                            for (let k = 0; k < inputBuffer.current.length - cursorIndex.current + 1; k++) {
+                                terminal.write('\x1b[D');
+                            }
+                        }
+                        i += 4; continue;
+                    } else {
+                        // Unknown escape sequence, skip until end character
+                        let j = i + 2;
+                        while (j < data.length && (data[j] < 'A' || data[j] > 'z')) j++;
+                        i = j + 1; continue;
+                    }
+                } else {
+                    i++; continue;
+                }
+            } else if (char === '\r' || char === '\n') {
                 terminal.write('\r\n');
                 socketRef.current?.emit('input', inputBuffer.current + '\n');
                 inputBuffer.current = '';
+                cursorIndex.current = 0;
+                i++;
             } else if (char === '\u007f' || char === '\b') { // Backspace
-                if (inputBuffer.current.length > 0) {
-                    inputBuffer.current = inputBuffer.current.slice(0, -1);
-                    terminal.write('\b \b');
+                if (cursorIndex.current > 0) {
+                    inputBuffer.current = inputBuffer.current.slice(0, cursorIndex.current - 1) + inputBuffer.current.slice(cursorIndex.current);
+                    cursorIndex.current--;
+                    terminal.write('\b');
+                    terminal.write(inputBuffer.current.slice(cursorIndex.current) + ' ');
+                    for (let k = 0; k < inputBuffer.current.length - cursorIndex.current + 1; k++) {
+                        terminal.write('\x1b[D');
+                    }
                 }
+                i++;
             } else if (char.charCodeAt(0) >= 32) {
-                // Only allow printable characters to be typed or pasted
-                inputBuffer.current += char;
-                terminal.write(char);
+                // Printable character
+                inputBuffer.current = inputBuffer.current.slice(0, cursorIndex.current) + char + inputBuffer.current.slice(cursorIndex.current);
+                terminal.write(char + inputBuffer.current.slice(cursorIndex.current));
+                cursorIndex.current++;
+                for (let k = 0; k < inputBuffer.current.length - cursorIndex.current; k++) {
+                    terminal.write('\x1b[D');
+                }
+                i++;
+            } else {
+                i++; // Ignore other control chars
             }
         }
     }, [isRunning, xterm]);
