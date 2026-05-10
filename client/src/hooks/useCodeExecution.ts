@@ -96,51 +96,45 @@ export const useCodeExecution = (
     // Enable terminal keyboard input forwarding (for stdin programs)
     const inputBuffer = useRef<string>('');
 
+    const handleInput = useCallback((data: string) => {
+        if (!isRunning || !socketRef.current?.connected || !xterm.current) return;
+        const terminal = xterm.current;
+
+        for (let i = 0; i < data.length; i++) {
+            const char = data[i];
+
+            if (char === '\r' || char === '\n') {
+                terminal.write('\r\n');
+                socketRef.current?.emit('input', inputBuffer.current + '\n');
+                inputBuffer.current = '';
+            } else if (char === '\u007f' || char === '\b') { // Backspace
+                if (inputBuffer.current.length > 0) {
+                    inputBuffer.current = inputBuffer.current.slice(0, -1);
+                    terminal.write('\b \b');
+                }
+            } else if (char.charCodeAt(0) >= 32) {
+                // Only allow printable characters to be typed or pasted
+                inputBuffer.current += char;
+                terminal.write(char);
+            }
+        }
+    }, [isRunning, xterm]);
+
     useEffect(() => {
-
         if (!xterm.current) return;
-
         const terminal = xterm.current;
 
         const disposable = terminal.onData((data: string) => {
-
-            if (isRunning && socketRef.current?.connected) {
-                // Process character by character to support multi-character pastes
-                for (let i = 0; i < data.length; i++) {
-                    const char = data[i];
-
-                    if (char === '\r' || char === '\n') {
-                        terminal.write('\r\n');
-                        socketRef.current?.emit('input', inputBuffer.current + '\n');
-                        inputBuffer.current = '';
-                    } else if (char === '\u007f' || char === '\b') { // Backspace
-                        if (inputBuffer.current.length > 0) {
-                            inputBuffer.current = inputBuffer.current.slice(0, -1);
-                            terminal.write('\b \b');
-                        }
-                    } else if (char.charCodeAt(0) >= 32) {
-                        // Only allow printable characters to be typed or pasted
-                        inputBuffer.current += char;
-                        terminal.write(char);
-                    }
-                }
-            }
-
+            handleInput(data);
         });
 
         return () => disposable.dispose();
-
-    }, [isRunning, xterm]);
+    }, [handleInput, xterm]);
 
     // initPyodide kept as fallback (not used for cloud execution)
     const initPyodide = useCallback(async () => {
-
         setIsInitializing(false);
-
-        xterm.current?.writeln(
-            '\x1b[32mCloud Execution Engine Ready\x1b[0m'
-        );
-
+        xterm.current?.writeln('\x1b[32mCloud Execution Engine Ready\x1b[0m');
     }, [xterm]);
 
     const runCode = useCallback(() => {
@@ -186,7 +180,8 @@ export const useCodeExecution = (
         isRunning,
         isInitializing,
         initPyodide,
-        runCode
+        runCode,
+        handleInput
     };
 
 };
