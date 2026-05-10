@@ -37,7 +37,7 @@ function App() {
 
   const colors = themeConfig[theme];
 
-  const { isRunning, isInitializing, initPyodide, runCode } = useCodeExecution(
+  const { isRunning, isInitializing, initPyodide, runCode, handleInput } = useCodeExecution(
     language, code, xterm, setPlotImage, setOutputTab
   );
 
@@ -101,7 +101,7 @@ function App() {
     fitAddon.current = fit;
 
     term.attachCustomKeyEventHandler((e) => {
-      if (e.ctrlKey && e.code === 'KeyC' && e.type === 'keydown') {
+      if ((e.ctrlKey || e.metaKey) && e.code === 'KeyC' && e.type === 'keydown') {
         const selection = term.getSelection();
         if (selection) { navigator.clipboard.writeText(selection); return false; }
       }
@@ -159,6 +159,18 @@ function App() {
         const allText = xterm.current.getSelection();
         if (allText) { navigator.clipboard.writeText(allText); xterm.current.clearSelection(); }
       }
+    }
+  };
+
+  const pasteIntoTerminal = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        handleInput(text);
+      }
+    } catch (err) {
+      console.error('Failed to read clipboard contents: ', err);
+      alert('Clipboard access denied. Please use Ctrl+V or Cmd+V to paste.');
     }
   };
 
@@ -282,7 +294,7 @@ function App() {
           }}>
             <TerminalPanel theme={theme} colors={colors} outputTab={outputTab}
               setOutputTab={setOutputTab} plotImage={plotImage} terminalRef={terminalRef}
-              copyTerminalOutput={copyTerminalOutput} clearTerminal={clearTerminal}
+              copyTerminalOutput={copyTerminalOutput} pasteIntoTerminal={pasteIntoTerminal} clearTerminal={clearTerminal}
               language={language} flex={1} />
           </div>
         </div>
