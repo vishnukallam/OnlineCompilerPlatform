@@ -58,6 +58,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./server/temp:/app/temp
+      - user_packages_data:/app/user_packages
     networks:
       - runner-network
     depends_on:
@@ -82,3 +83,6 @@ services:
 networks:
   runner-network:
     driver: bridge
+
+volumes:
+  user_packages_data:
