@@ -177,24 +177,28 @@ try:
         plt.savefig(buf, format='png', bbox_inches='tight')
         buf.seek(0)
         b64 = base64.b64encode(buf.read()).decode('utf-8')
-        print("\\nVISUAL_OUTPUT:" + b64 + "END_VISUAL_OUTPUT\\n")
+        print("\\nVISUAL_OUTPUT:" + b64 + "END_VISUAL_OUTPUT\\n", flush=True)
         plt.clf()
 
     plt.show = _custom_show
-except Exception:
-    pass
+except Exception as e:
+    print(f"DEBUG: Matplotlib patch failed: {e}", file=sys.stderr)
 
 try:
     import plotly.io as pio
     
     def _custom_plotly_show(*args, **kwargs):
-        html_str = pio.to_html(args[0], include_plotlyjs="cdn", full_html=True)
-        b64 = base64.b64encode(html_str.encode('utf-8')).decode('utf-8')
-        print("\\nVISUAL_OUTPUT:HTML:" + b64 + "END_VISUAL_OUTPUT\\n")
+        try:
+            fig = args[0]
+            html_str = pio.to_html(fig, include_plotlyjs="cdn", full_html=True)
+            b64 = base64.b64encode(html_str.encode('utf-8')).decode('utf-8')
+            print("\\nVISUAL_OUTPUT:HTML:" + b64 + "END_VISUAL_OUTPUT\\n", flush=True)
+        except Exception as e:
+            print(f"DEBUG: Plotly show failed: {e}", file=sys.stderr)
 
     pio.show = _custom_plotly_show
-except Exception:
-    pass
+except Exception as e:
+    print(f"DEBUG: Plotly patch failed: {e}", file=sys.stderr)
 
 ` + code;
 
