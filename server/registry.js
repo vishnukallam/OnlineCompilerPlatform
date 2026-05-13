@@ -20,7 +20,15 @@ const PYTHON_CMD = fs.existsSync('/opt/pyenv/bin/python3')
 /**
  * Safely installs a pip package to the persistent target directory
  */
-async function installPersistentPackage(packageName) {
+async function installPersistentPackage(packageName, { onOutput, onError } = {}) {
+    // Detect system packages that shouldn't be installed via pip
+    const systemPackages = ['tkinter', 'ssl', 'os', 'sys', 'math', 'json', 're', 'datetime'];
+    if (systemPackages.includes(packageName.toLowerCase())) {
+        const msg = `Notice: '${packageName}' is a system-level module and is already pre-installed. Do not install it via pip.\n`;
+        onOutput?.(msg);
+        return { success: true, output: msg };
+    }
+
     // Basic sanitization: alphanumeric and common characters only
     if (!/^[a-zA-Z0-9_\-\.]+$/.test(packageName)) {
         throw new Error('Invalid package name');
@@ -29,6 +37,11 @@ async function installPersistentPackage(packageName) {
     console.log(`Installing package: ${packageName} to ${USER_PACKAGES_DIR}`);
 
     return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+            proc.kill();
+            reject(new Error(`Installation of ${packageName} timed out after 60 seconds`));
+        }, 60000);
+
         const proc = spawn(PYTHON_CMD, [
             '-m', 'pip', 'install',
             `--target=${USER_PACKAGES_DIR}`,
@@ -38,10 +51,20 @@ async function installPersistentPackage(packageName) {
         });
 
         let output = '';
-        proc.stdout.on('data', (data) => output += data.toString());
-        proc.stderr.on('data', (data) => output += data.toString());
+        proc.stdout.on('data', (data) => {
+            const chunk = data.toString();
+            output += chunk;
+            onOutput?.(chunk); // Stream to terminal
+        });
+        
+        proc.stderr.on('data', (data) => {
+            const chunk = data.toString();
+            output += chunk;
+            onError?.(chunk); // Stream to terminal
+        });
 
         proc.on('close', async (code) => {
+            clearTimeout(timeout);
             if (code === 0) {
                 try {
                     // Log to MongoDB
@@ -55,8 +78,13 @@ async function installPersistentPackage(packageName) {
                     reject(new Error(`Failed to log package to registry: ${err.message}`));
                 }
             } else {
-                reject(new Error(`Pip install failed with code ${code}: ${output}`));
+                reject(new Error(`Pip install failed with code ${code}`));
             }
+        });
+
+        proc.on('error', (err) => {
+            clearTimeout(timeout);
+            reject(err);
         });
     });
 }
