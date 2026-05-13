@@ -9,8 +9,11 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20
+      - key: PYTHONPATH
+        value: /app/user_packages
 
     aptPackages:
       - openjdk-17-jdk
       - python3
       - python3-pip
+      - python3-tk
