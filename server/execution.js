@@ -307,66 +307,57 @@ async function executeJava(code, { onOutput, onError, onStatus } = {}, version =
 }
 
 async function installPipModule(moduleName, { onOutput, onError, onStatus } = {}) {
-    if (!/^[a-zA-Z0-9_\-]+$/.test(moduleName)) {
+    // Basic sanitization
+    if (!/^[a-zA-Z0-9_\-\.]+$/.test(moduleName)) {
         onError?.("Invalid module name");
         return false;
     }
     onStatus?.(`Installing ${moduleName}...`);
     
     try {
-        if (IS_RENDER) {
-            const proc = spawn(PYTHON_CMD, ['-m', 'pip', 'install', moduleName], {
-                env: process.env
-            });
-            proc.stdout.on('data', d => onOutput?.(d.toString()));
-            proc.stderr.on('data', d => onError?.(d.toString()));
-            return new Promise(resolve => {
-                proc.on('close', code => resolve(code === 0));
-            });
-        } else {
-            let success = true;
-            for (const lang of ['python', 'python3.10', 'python3.11']) {
-                const containerName = SUPPORTED_LANGUAGES[lang];
-                if (!containerName) continue;
-                try {
-                    const container = docker.getContainer(containerName);
-                    const containerInfo = await container.inspect();
-                    if (!containerInfo.State.Running) continue;
-
-                    const exec = await container.exec({
-                        Cmd: ['pip', 'install', moduleName],
-                        AttachStdout: true,
-                        AttachStderr: true
-                    });
-                    const stream = await exec.start();
-                    stream.on('data', chunk => {
-                        let offset = 0;
-                        while (offset < chunk.length) {
-                            const type = chunk[offset];
-                            const length = chunk.readUInt32BE(offset + 4);
-                            const payload = chunk.slice(offset + 8, offset + 8 + length).toString('utf8');
-                            if (type === 1) onOutput?.(payload);
-                            else if (type === 2) onError?.(payload);
-                            offset += 8 + length;
-                        }
-                    });
-                    const exitCode = await new Promise(resolve => {
-                        stream.on('end', async () => {
-                            const { ExitCode } = await exec.inspect();
-                            resolve(ExitCode);
-                        });
-                    });
-                    if (exitCode !== 0) success = false;
-                } catch(e) {
-                    // ignore if container doesn't exist
-                }
-            }
-            return success;
+        const USER_PACKAGES_DIR = '/app/user_packages';
+        // Check if we are running in the container environment with the target dir
+        const useTarget = fs.existsSync(USER_PACKAGES_DIR);
+        const args = ['-m', 'pip', 'install'];
+        if (useTarget) {
+            args.push(`--target=${USER_PACKAGES_DIR}`);
         }
+        args.push(moduleName);
+
+        const proc = spawn(PYTHON_CMD, args, {
+            env: { 
+                ...process.env, 
+                PYTHONPATH: useTarget ? `${USER_PACKAGES_DIR}:${process.env.PYTHONPATH || ''}` : process.env.PYTHONPATH 
+            }
+        });
+
+        proc.stdout.on('data', d => onOutput?.(d.toString()));
+        proc.stderr.on('data', d => onError?.(d.toString()));
+
+        return new Promise(resolve => {
+            proc.on('close', async (code) => {
+                if (code === 0) {
+                    // Try to log to MongoDB if the registry module is available
+                    try {
+                        const { Package } = require('./registry');
+                        await Package.findOneAndUpdate(
+                            { name: moduleName },
+                            { name: moduleName, installedAt: new Date() },
+                            { upsert: true }
+                        );
+                    } catch (e) {
+                        // Registry might not be initialized or available, ignore
+                    }
+                    resolve(true);
+                } else {
+                    resolve(false);
+                }
+            });
+        });
     } catch(err) {
         onError?.(`Failed to install module: ${err.message}`);
         return false;
     }
 }
 
-module.exports = { executePython, executeJava, installPipModule };
+module.exports = { executePython, executeJava, installPipModule };
