@@ -184,6 +184,18 @@ try:
 except Exception:
     pass
 
+try:
+    import plotly.io as pio
+    
+    def _custom_plotly_show(*args, **kwargs):
+        html_str = pio.to_html(args[0], include_plotlyjs="cdn", full_html=True)
+        b64 = base64.b64encode(html_str.encode('utf-8')).decode('utf-8')
+        print("\\nVISUAL_OUTPUT:HTML:" + b64 + "END_VISUAL_OUTPUT\\n")
+
+    pio.show = _custom_plotly_show
+except Exception:
+    pass
+
 ` + code;
 
         currentProcess = await executePython(pythonWrapper, {
