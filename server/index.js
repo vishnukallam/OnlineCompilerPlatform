@@ -9,6 +9,8 @@ const path = require("path");
 const fs = require("fs-extra");
 
 const { executeJava, executePython, installPipModule } = require("./execution");
+const mongoose = require("mongoose");
+const { installPersistentPackage, recoverPackages } = require("./registry");
 
 const app = express();
 const server = http.createServer(app);
@@ -43,6 +45,18 @@ app.use(
 );
 
 app.use(express.json());
+
+/* -------------------- DATABASE CONNECTION -------------------- */
+
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/online-compiler";
+
+mongoose.connect(MONGODB_URI)
+  .then(async () => {
+    console.log("Connected to MongoDB Registry");
+    // Run recovery mechanism on startup
+    await recoverPackages();
+  })
+  .catch(err => console.error("MongoDB Connection Error:", err));
 
 /* -------------------- SOCKET.IO SETUP -------------------- */
 
@@ -113,6 +127,19 @@ app.post("/api/files/save", async (req, res) => {
     res.json({ message: "File saved", filename });
   } catch (err) {
     res.status(500).json({ error: "Failed to save file" });
+  }
+});
+
+app.post("/api/install-package", async (req, res) => {
+  const { packageName } = req.body;
+  if (!packageName) return res.status(400).json({ error: "Package name required" });
+
+  try {
+    const result = await installPersistentPackage(packageName);
+    res.json({ message: `Successfully installed ${packageName}`, output: result.output });
+  } catch (err) {
+    console.error(`Installation failed: ${err.message}`);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -225,29 +252,11 @@ except Exception as e:
     const onStatus = (status) => socket.emit("status", status);
 
     try {
-      const success = await installPipModule(moduleName, { onOutput, onError, onStatus });
-      if (success) {
+      onStatus(`Installing ${moduleName}...`);
+      const result = await installPersistentPackage(moduleName);
+      if (result.success) {
         onOutput(`\r\nSuccessfully installed ${moduleName}\r\n`);
-        try {
-          const dockerfilePath = path.join(__dirname, 'Dockerfile');
-          const content = await fs.readFile(dockerfilePath, 'utf8');
-          const lines = content.split('\n');
-          const verifyIndex = lines.findIndex(l => l.includes('# Verify packages using venv python directly'));
-          if (verifyIndex !== -1) {
-            let lastPkgLineIdx = verifyIndex - 1;
-            while(lastPkgLineIdx > 0 && lines[lastPkgLineIdx].trim() === '') {
-              lastPkgLineIdx--;
-            }
-            if (!lines[lastPkgLineIdx].includes(moduleName)) {
-              lines[lastPkgLineIdx] += ' \\';
-              lines.splice(lastPkgLineIdx + 1, 0, '    ' + moduleName);
-              await fs.writeFile(dockerfilePath, lines.join('\n'), 'utf8');
-              onOutput(`\r\nUpdated Dockerfile with ${moduleName}\r\n`);
-            }
-          }
-        } catch(e) {
-          onError(`\r\nFailed to update Dockerfile: ${e.message}\r\n`);
-        }
+        onOutput(result.output);
       } else {
         onError(`\r\nFailed to install ${moduleName}\r\n`);
       }
