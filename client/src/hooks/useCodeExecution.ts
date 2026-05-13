@@ -16,6 +16,8 @@ export const useCodeExecution = (
     const [isRunning, setIsRunning] = useState(false);
     const [isInitializing, setIsInitializing] = useState(false);
     const socketRef = useRef<Socket | null>(null);
+    const visualBuffer = useRef<string>('');
+    const isReceivingVisual = useRef<boolean>(false);
 
     // Initialize Socket.IO connection to backend
     useEffect(() => {
@@ -35,18 +37,35 @@ export const useCodeExecution = (
         });
 
         socket.on('stdout', (data: string) => {
+            if (isReceivingVisual.current) {
+                visualBuffer.current += data;
+                if (visualBuffer.current.includes('END_VISUAL_OUTPUT')) {
+                    const b64 = visualBuffer.current.split('END_VISUAL_OUTPUT')[0].trim();
+                    setPlotImage('data:image/png;base64,' + b64);
+                    setOutputTab('visuals');
+                    isReceivingVisual.current = false;
+                    visualBuffer.current = '';
+                }
+                return;
+            }
 
-            // Check if stdout contains a visual output marker
             if (data.includes('VISUAL_OUTPUT:')) {
-
-                const b64 = data.replace('VISUAL_OUTPUT:', '').trim();
-                setPlotImage('data:image/png;base64,' + b64);
-                setOutputTab('visuals');
-
+                const parts = data.split('VISUAL_OUTPUT:');
+                if (parts[0]) {
+                    xterm.current?.write('\x1b[36m' + parts[0] + '\x1b[0m');
+                }
+                isReceivingVisual.current = true;
+                visualBuffer.current = parts[1] || '';
+                
+                if (visualBuffer.current.includes('END_VISUAL_OUTPUT')) {
+                    const b64 = visualBuffer.current.split('END_VISUAL_OUTPUT')[0].trim();
+                    setPlotImage('data:image/png;base64,' + b64);
+                    setOutputTab('visuals');
+                    isReceivingVisual.current = false;
+                    visualBuffer.current = '';
+                }
             } else {
-
                 xterm.current?.write('\x1b[36m' + data + '\x1b[0m');
-
             }
         });
 
