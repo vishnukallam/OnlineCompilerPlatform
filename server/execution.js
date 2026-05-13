@@ -306,4 +306,67 @@ async function executeJava(code, { onOutput, onError, onStatus } = {}, version =
     }
 }
 
-module.exports = { executePython, executeJava };
+async function installPipModule(moduleName, { onOutput, onError, onStatus } = {}) {
+    if (!/^[a-zA-Z0-9_\-]+$/.test(moduleName)) {
+        onError?.("Invalid module name");
+        return false;
+    }
+    onStatus?.(`Installing ${moduleName}...`);
+    
+    try {
+        if (IS_RENDER) {
+            const proc = spawn(PYTHON_CMD, ['-m', 'pip', 'install', moduleName], {
+                env: process.env
+            });
+            proc.stdout.on('data', d => onOutput?.(d.toString()));
+            proc.stderr.on('data', d => onError?.(d.toString()));
+            return new Promise(resolve => {
+                proc.on('close', code => resolve(code === 0));
+            });
+        } else {
+            let success = true;
+            for (const lang of ['python', 'python3.10', 'python3.11']) {
+                const containerName = SUPPORTED_LANGUAGES[lang];
+                if (!containerName) continue;
+                try {
+                    const container = docker.getContainer(containerName);
+                    const containerInfo = await container.inspect();
+                    if (!containerInfo.State.Running) continue;
+
+                    const exec = await container.exec({
+                        Cmd: ['pip', 'install', moduleName],
+                        AttachStdout: true,
+                        AttachStderr: true
+                    });
+                    const stream = await exec.start();
+                    stream.on('data', chunk => {
+                        let offset = 0;
+                        while (offset < chunk.length) {
+                            const type = chunk[offset];
+                            const length = chunk.readUInt32BE(offset + 4);
+                            const payload = chunk.slice(offset + 8, offset + 8 + length).toString('utf8');
+                            if (type === 1) onOutput?.(payload);
+                            else if (type === 2) onError?.(payload);
+                            offset += 8 + length;
+                        }
+                    });
+                    const exitCode = await new Promise(resolve => {
+                        stream.on('end', async () => {
+                            const { ExitCode } = await exec.inspect();
+                            resolve(ExitCode);
+                        });
+                    });
+                    if (exitCode !== 0) success = false;
+                } catch(e) {
+                    // ignore if container doesn't exist
+                }
+            }
+            return success;
+        }
+    } catch(err) {
+        onError?.(`Failed to install module: ${err.message}`);
+        return false;
+    }
+}
+
+module.exports = { executePython, executeJava, installPipModule };
