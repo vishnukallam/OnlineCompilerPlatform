@@ -177,7 +177,7 @@ try:
         plt.savefig(buf, format='png', bbox_inches='tight')
         buf.seek(0)
         b64 = base64.b64encode(buf.read()).decode('utf-8')
-        print("\\nVISUAL_OUTPUT:" + b64 + "\\n")
+        print("\\nVISUAL_OUTPUT:" + b64 + "END_VISUAL_OUTPUT\\n")
         plt.clf()
 
     plt.show = _custom_show
