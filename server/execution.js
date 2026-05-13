@@ -307,55 +307,13 @@ async function executeJava(code, { onOutput, onError, onStatus } = {}, version =
 }
 
 async function installPipModule(moduleName, { onOutput, onError, onStatus } = {}) {
-    // Basic sanitization
-    if (!/^[a-zA-Z0-9_\-\.]+$/.test(moduleName)) {
-        onError?.("Invalid module name");
-        return false;
-    }
-    onStatus?.(`Installing ${moduleName}...`);
-    
     try {
-        const USER_PACKAGES_DIR = '/app/user_packages';
-        // Check if we are running in the container environment with the target dir
-        const useTarget = fs.existsSync(USER_PACKAGES_DIR);
-        const args = ['-m', 'pip', 'install'];
-        if (useTarget) {
-            args.push(`--target=${USER_PACKAGES_DIR}`);
-        }
-        args.push(moduleName);
-
-        const proc = spawn(PYTHON_CMD, args, {
-            env: { 
-                ...process.env, 
-                PYTHONPATH: useTarget ? `${USER_PACKAGES_DIR}:${process.env.PYTHONPATH || ''}` : process.env.PYTHONPATH 
-            }
-        });
-
-        proc.stdout.on('data', d => onOutput?.(d.toString()));
-        proc.stderr.on('data', d => onError?.(d.toString()));
-
-        return new Promise(resolve => {
-            proc.on('close', async (code) => {
-                if (code === 0) {
-                    // Try to log to MongoDB if the registry module is available
-                    try {
-                        const { Package } = require('./registry');
-                        await Package.findOneAndUpdate(
-                            { name: moduleName },
-                            { name: moduleName, installedAt: new Date() },
-                            { upsert: true }
-                        );
-                    } catch (e) {
-                        // Registry might not be initialized or available, ignore
-                    }
-                    resolve(true);
-                } else {
-                    resolve(false);
-                }
-            });
-        });
-    } catch(err) {
-        onError?.(`Failed to install module: ${err.message}`);
+        const { installPersistentPackage } = require('./registry');
+        onStatus?.(`Installing ${moduleName}...`);
+        const result = await installPersistentPackage(moduleName, { onOutput, onError });
+        return result.success;
+    } catch (err) {
+        onError?.(`Installation failed: ${err.message}`);
         return false;
     }
 }
