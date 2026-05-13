@@ -253,10 +253,9 @@ except Exception as e:
 
     try {
       onStatus(`Installing ${moduleName}...`);
-      const result = await installPersistentPackage(moduleName);
+      const result = await installPersistentPackage(moduleName, { onOutput, onError });
       if (result.success) {
         onOutput(`\r\nSuccessfully installed ${moduleName}\r\n`);
-        onOutput(result.output);
       } else {
         onError(`\r\nFailed to install ${moduleName}\r\n`);
       }
