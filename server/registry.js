@@ -22,9 +22,25 @@ const PYTHON_CMD = fs.existsSync('/opt/pyenv/bin/python3')
  */
 async function installPersistentPackage(packageName, { onOutput, onError } = {}) {
     // Detect system packages that shouldn't be installed via pip
-    const systemPackages = ['tkinter', 'ssl', 'os', 'sys', 'math', 'json', 're', 'datetime'];
-    if (systemPackages.includes(packageName.toLowerCase())) {
-        const msg = `Notice: '${packageName}' is a system-level module and is already pre-installed. Do not install it via pip.\n`;
+    const systemPackages = {
+        // Standard library — already built in
+        'os': 'built-in Python standard library',
+        'sys': 'built-in Python standard library',
+        'math': 'built-in Python standard library',
+        'json': 'built-in Python standard library',
+        're': 'built-in Python standard library',
+        'datetime': 'built-in Python standard library',
+        'ssl': 'built-in Python standard library',
+        // System packages — installed via apt, not pip
+        'tkinter': 'a GUI library that requires a display screen. It cannot run on a server because there is no monitor attached.',
+        'turtle': 'a GUI library that requires a display screen and cannot run on a server.',
+        'pygame': 'a GUI/game library that requires a display screen and cannot run on a server.',
+        'wx': 'a GUI library that requires a display screen and cannot run on a server.',
+        'gtk': 'a GUI library that requires a display screen and cannot run on a server.',
+    };
+
+    if (systemPackages[packageName.toLowerCase()]) {
+        const msg = `Notice: '${packageName}' is ${systemPackages[packageName.toLowerCase()]} It cannot be installed via pip here.\n`;
         onOutput?.(msg);
         return { success: true, output: msg };
     }
