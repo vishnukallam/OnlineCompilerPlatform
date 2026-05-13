@@ -98,7 +98,7 @@ export const useCodeExecution = (
     const cursorIndex = useRef<number>(0);
 
     const handleInput = useCallback((data: string) => {
-        if (!isRunning || !socketRef.current?.connected || !xterm.current) return;
+        if (!socketRef.current?.connected || !xterm.current) return;
         const terminal = xterm.current;
 
         let i = 0;
@@ -142,7 +142,25 @@ export const useCodeExecution = (
                 }
             } else if (char === '\r' || char === '\n') {
                 terminal.write('\r\n');
-                socketRef.current?.emit('input', inputBuffer.current + '\n');
+                if (isRunning) {
+                    socketRef.current?.emit('input', inputBuffer.current + '\n');
+                } else {
+                    const cmd = inputBuffer.current.trim();
+                    if (cmd.startsWith('pip install ')) {
+                        const moduleName = cmd.replace('pip install ', '').trim();
+                        if (moduleName) {
+                            terminal.writeln(`\x1b[36mInstalling module: ${moduleName}...\x1b[0m`);
+                            socketRef.current?.emit('install-pip', moduleName);
+                        } else {
+                            terminal.write('\x1b[90m$ \x1b[0m');
+                        }
+                    } else if (cmd !== '') {
+                        terminal.writeln('\x1b[31mCommand not supported. Only "pip install <module_name>" is allowed.\x1b[0m');
+                        terminal.write('\x1b[90m$ \x1b[0m');
+                    } else {
+                        terminal.write('\x1b[90m$ \x1b[0m');
+                    }
+                }
                 inputBuffer.current = '';
                 cursorIndex.current = 0;
                 i++;
@@ -160,7 +178,7 @@ export const useCodeExecution = (
             } else if (char.charCodeAt(0) >= 32) {
                 // Printable character
                 inputBuffer.current = inputBuffer.current.slice(0, cursorIndex.current) + char + inputBuffer.current.slice(cursorIndex.current);
-                terminal.write(char + inputBuffer.current.slice(cursorIndex.current));
+                terminal.write(char + inputBuffer.current.slice(cursorIndex.current + 1));
                 cursorIndex.current++;
                 for (let k = 0; k < inputBuffer.current.length - cursorIndex.current; k++) {
                     terminal.write('\x1b[D');
