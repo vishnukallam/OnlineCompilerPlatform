@@ -142,6 +142,13 @@ COPY . .
 
 RUN mkdir -p temp && chmod 777 temp
 
+# Create directory for persistent user-installed packages
+RUN mkdir -p /app/user_packages && chmod 777 /app/user_packages
+
+# Configure PYTHONPATH to include the user_packages directory
+# This ensures that any module installed there is importable by Python
+ENV PYTHONPATH="/app/user_packages:${PYTHONPATH}"
+
 EXPOSE 5000
 
 CMD ["npm", "start"]
