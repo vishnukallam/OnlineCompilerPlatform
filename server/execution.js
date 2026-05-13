@@ -42,7 +42,11 @@ async function executeLocal(code, { onOutput, onError, onStatus }, language) {
         onStatus?.('Running...');
         const proc = spawn(PYTHON_CMD, [scriptPath], {
             cwd: workDir,
-            env: { ...process.env, PYTHONUNBUFFERED: '1' }
+            env: {
+                ...process.env,
+                PYTHONUNBUFFERED: '1',
+                PYTHONPATH: '/app/user_packages'
+            }
         });
 
         proc.stdout.on('data', (data) => onOutput?.(data.toString('utf8')));
