@@ -8,7 +8,7 @@ const { Server } = require("socket.io");
 const path = require("path");
 const fs = require("fs-extra");
 
-const { executeJava, executePython } = require("./execution");
+const { executeJava, executePython, installPipModule } = require("./execution");
 
 const app = express();
 const server = http.createServer(app);
@@ -162,7 +162,31 @@ io.on("connection", (socket) => {
         }, language);
       }
       else if (language.startsWith("python")) {
-        currentProcess = await executePython(code, {
+        const pythonWrapper = `
+import sys
+import base64
+import io
+
+try:
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    
+    def _custom_show(*args, **kwargs):
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight')
+        buf.seek(0)
+        b64 = base64.b64encode(buf.read()).decode('utf-8')
+        print("\\nVISUAL_OUTPUT:" + b64 + "\\n")
+        plt.clf()
+
+    plt.show = _custom_show
+except Exception:
+    pass
+
+` + code;
+
+        currentProcess = await executePython(pythonWrapper, {
           onOutput,
           onError,
           onStatus
@@ -175,6 +199,46 @@ io.on("connection", (socket) => {
     } catch (err) {
       socket.emit("stderr", `Critical Engine Error: ${err.message}`);
     }
+  });
+
+  /* ---------- PIP INSTALL ---------- */
+
+  socket.on("install-pip", async (moduleName) => {
+    const onOutput = (data) => socket.emit("stdout", data);
+    const onError = (data) => socket.emit("stderr", data);
+    const onStatus = (status) => socket.emit("status", status);
+
+    try {
+      const success = await installPipModule(moduleName, { onOutput, onError, onStatus });
+      if (success) {
+        onOutput(`\r\nSuccessfully installed ${moduleName}\r\n`);
+        try {
+          const dockerfilePath = path.join(__dirname, 'Dockerfile');
+          const content = await fs.readFile(dockerfilePath, 'utf8');
+          const lines = content.split('\n');
+          const verifyIndex = lines.findIndex(l => l.includes('# Verify packages using venv python directly'));
+          if (verifyIndex !== -1) {
+            let lastPkgLineIdx = verifyIndex - 1;
+            while(lastPkgLineIdx > 0 && lines[lastPkgLineIdx].trim() === '') {
+              lastPkgLineIdx--;
+            }
+            if (!lines[lastPkgLineIdx].includes(moduleName)) {
+              lines[lastPkgLineIdx] += ' \\';
+              lines.splice(lastPkgLineIdx + 1, 0, '    ' + moduleName);
+              await fs.writeFile(dockerfilePath, lines.join('\n'), 'utf8');
+              onOutput(`\r\nUpdated Dockerfile with ${moduleName}\r\n`);
+            }
+          }
+        } catch(e) {
+          onError(`\r\nFailed to update Dockerfile: ${e.message}\r\n`);
+        }
+      } else {
+        onError(`\r\nFailed to install ${moduleName}\r\n`);
+      }
+    } catch (e) {
+      onError(`\r\nInstallation error: ${e.message}\r\n`);
+    }
+    socket.emit("pip-installed");
   });
 
   /* ---------- INPUT FROM TERMINAL ---------- */
