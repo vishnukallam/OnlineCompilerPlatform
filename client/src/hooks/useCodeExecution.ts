@@ -68,9 +68,14 @@ export const useCodeExecution = (
             ) {
 
                 setIsRunning(false);
+                xterm.current?.write('\r\n\x1b[90m$ \x1b[0m');
 
             }
 
+        });
+
+        socket.on('pip-installed', () => {
+            xterm.current?.write('\r\n\x1b[90m$ \x1b[0m');
         });
 
         socket.on('error', (err: string) => {
