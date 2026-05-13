@@ -40,8 +40,18 @@ export const useCodeExecution = (
             if (isReceivingVisual.current) {
                 visualBuffer.current += data;
                 if (visualBuffer.current.includes('END_VISUAL_OUTPUT')) {
-                    const b64 = visualBuffer.current.split('END_VISUAL_OUTPUT')[0].trim();
-                    setPlotImage('data:image/png;base64,' + b64);
+                    const content = visualBuffer.current.split('END_VISUAL_OUTPUT')[0].trim();
+                    if (content.startsWith('HTML:')) {
+                        const b64 = content.replace('HTML:', '');
+                        try {
+                            const htmlStr = decodeURIComponent(escape(atob(b64)));
+                            setPlotImage('data:text/html,' + htmlStr);
+                        } catch(e) {
+                            console.error('Failed to decode HTML', e);
+                        }
+                    } else {
+                        setPlotImage('data:image/png;base64,' + content);
+                    }
                     setOutputTab('visuals');
                     isReceivingVisual.current = false;
                     visualBuffer.current = '';
@@ -58,8 +68,18 @@ export const useCodeExecution = (
                 visualBuffer.current = parts[1] || '';
                 
                 if (visualBuffer.current.includes('END_VISUAL_OUTPUT')) {
-                    const b64 = visualBuffer.current.split('END_VISUAL_OUTPUT')[0].trim();
-                    setPlotImage('data:image/png;base64,' + b64);
+                    const content = visualBuffer.current.split('END_VISUAL_OUTPUT')[0].trim();
+                    if (content.startsWith('HTML:')) {
+                        const b64 = content.replace('HTML:', '');
+                        try {
+                            const htmlStr = decodeURIComponent(escape(atob(b64)));
+                            setPlotImage('data:text/html,' + htmlStr);
+                        } catch(e) {
+                            console.error('Failed to decode HTML', e);
+                        }
+                    } else {
+                        setPlotImage('data:image/png;base64,' + content);
+                    }
                     setOutputTab('visuals');
                     isReceivingVisual.current = false;
                     visualBuffer.current = '';
