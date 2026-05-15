@@ -1,7 +1,41 @@
 import { Language, ThemeConfig } from './types';
 
 export const templates: Record<Language, string> = {
-    python: `print("Welcome to Code Compiler.")`,
+    python: `import matplotlib.pyplot as plt
+import numpy as np
+
+# Sample data for various plots
+x = np.linspace(0, 10, 100)
+y = np.sin(x)
+
+# Create a figure with subplots
+fig, axs = plt.subplots(2, 2, figsize=(10, 8))
+
+# 1. Line Plot
+axs[0, 0].plot(x, y, color='blue')
+axs[0, 0].set_title('Line Plot (Sine Wave)')
+
+# 2. Scatter Plot (Bubble Chart)
+s = np.random.rand(50) * 100
+axs[0, 1].scatter(np.random.rand(50), np.random.rand(50), s=s, alpha=0.5, color='red')
+axs[0, 1].set_title('Scatter/Bubble Chart')
+
+# 3. Bar Chart
+labels = ['A', 'B', 'C', 'D']
+values = [10, 24, 15, 30]
+axs[1, 0].bar(labels, values, color='green')
+axs[1, 0].set_title('Bar Chart')
+
+# 4. Heatmap (Histogram)
+data = np.random.randn(20, 20)
+im = axs[1, 1].imshow(data, cmap='viridis')
+fig.colorbar(im, ax=axs[1, 1])
+axs[1, 1].set_title('Heatmap')
+
+plt.tight_layout()
+plt.show()
+
+print("Visualization Ready!")`,
     'python3.10': `print("Welcome to Python 3.10 Compiler.")`,
     'python3.11': `print("Welcome to Python 3.11 Compiler.")`,
     java: `class Main {
