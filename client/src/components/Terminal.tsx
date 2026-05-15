@@ -52,7 +52,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
                         <span className="material-symbols-rounded" style={{ fontSize: '18px' }}>terminal</span>
                         Terminal
                     </button>
-                    {(language === 'python' || language === 'java') && (
+                    {(language.startsWith('python') || language.startsWith('java')) && (
                         <button
                             onClick={() => setOutputTab('visuals')}
                             style={{
