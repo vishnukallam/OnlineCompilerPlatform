@@ -193,6 +193,10 @@ io.on("connection", (socket) => {
 import sys
 import base64
 import io
+import os
+
+# Set non-interactive backend
+os.environ['MPLBACKEND'] = 'Agg'
 
 try:
     import matplotlib
@@ -200,23 +204,29 @@ try:
     import matplotlib.pyplot as plt
     
     def _custom_show(*args, **kwargs):
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight')
-        buf.seek(0)
-        b64 = base64.b64encode(buf.read()).decode('utf-8')
-        print("\\nVISUAL_OUTPUT:" + b64 + "END_VISUAL_OUTPUT\\n", flush=True)
-        plt.clf()
+        try:
+            if not plt.get_fignums():
+                return
+            buf = io.BytesIO()
+            plt.savefig(buf, format='png', bbox_inches='tight')
+            buf.seek(0)
+            b64 = base64.b64encode(buf.read()).decode('utf-8')
+            print("\\nVISUAL_OUTPUT:" + b64 + "END_VISUAL_OUTPUT\\n", flush=True)
+            plt.clf()
+            plt.close('all')
+        except Exception as e:
+            print(f"DEBUG: Matplotlib show failed: {e}", file=sys.stderr)
 
     plt.show = _custom_show
 except Exception as e:
-    print(f"DEBUG: Matplotlib patch failed: {e}", file=sys.stderr)
+    pass
 
 try:
     import plotly.io as pio
     
     def _custom_plotly_show(*args, **kwargs):
         try:
-            fig = args[0]
+            fig = args[0] if args else plt.gcf()
             html_str = pio.to_html(fig, include_plotlyjs="cdn", full_html=True)
             b64 = base64.b64encode(html_str.encode('utf-8')).decode('utf-8')
             print("\\nVISUAL_OUTPUT:HTML:" + b64 + "END_VISUAL_OUTPUT\\n", flush=True)
@@ -225,9 +235,23 @@ try:
 
     pio.show = _custom_plotly_show
 except Exception as e:
-    print(f"DEBUG: Plotly patch failed: {e}", file=sys.stderr)
+    pass
 
-` + code;
+# User Code Execution
+try:
+    exec(compile(${JSON.stringify(code)}, 'main.py', 'exec'))
+except Exception as e:
+    import traceback
+    traceback.print_exc()
+
+# Auto-show any figures left open
+try:
+    import matplotlib.pyplot as plt
+    if plt.get_fignums():
+        plt.show()
+except:
+    pass
+`;
 
         currentProcess = await executePython(pythonWrapper, {
           onOutput,
