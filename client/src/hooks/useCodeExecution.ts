@@ -279,7 +279,7 @@ export const useCodeExecution = (
 
         let processedCode = code;
 
-        if (language === 'java') {
+        if (language.startsWith('java')) {
 
             processedCode = code
                 .replace(/^[ \t]*package[ \t]+[a-zA-Z0-9._]+[ \t]*;/gm, '')
