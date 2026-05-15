@@ -72,7 +72,7 @@ function App() {
     const javaCode = sessionStorage.getItem('code_java');
     if (javaCode === templates.python) {
       sessionStorage.setItem('code_java', templates.java);
-      if (language === 'java') setCode(templates.java);
+      if (language.startsWith('java')) setCode(templates.java);
     }
   }, [language]);
 
