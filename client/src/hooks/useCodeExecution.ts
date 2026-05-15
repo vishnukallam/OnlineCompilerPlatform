@@ -190,8 +190,12 @@ export const useCodeExecution = (
                     socketRef.current?.emit('input', inputBuffer.current + '\n');
                 } else {
                     const cmd = inputBuffer.current.trim();
-                    if (cmd.startsWith('pip install ')) {
-                        const moduleName = cmd.replace('pip install ', '').trim();
+                    const lowerCmd = cmd.toLowerCase();
+                    if (lowerCmd === 'clear' || lowerCmd === 'cls') {
+                        terminal.clear();
+                        terminal.write('\x1b[90m$ \x1b[0m');
+                    } else if (lowerCmd.startsWith('pip install ')) {
+                        const moduleName = cmd.slice(12).trim();
                         if (moduleName) {
                             terminal.writeln(`\x1b[36mInstalling module: ${moduleName}...\x1b[0m`);
                             socketRef.current?.emit('install-pip', moduleName);
