@@ -121,7 +121,7 @@ function App() {
     });
 
     resizeObserver.observe(terminalRef.current);
-    term.writeln('\x1b[1;32mCode Compiler Ready\x1b[0m');
+    term.writeln('\x1b[1;32mOnline Compiler Platform Ready\x1b[0m');
     initPyodide();
 
     return () => {
