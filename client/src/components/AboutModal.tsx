@@ -99,13 +99,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, colors }) => {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
-                    <button
-                        className="md-button md-button--text"
-                        onClick={onClose}
-                    >
-                        Close
-                    </button>
-                    <button
+                   <button
                         className="md-button md-button--filled"
                         onClick={onClose}
                     >
