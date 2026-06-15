@@ -41,7 +41,7 @@ const Header: React.FC<HeaderProps> = ({
                         fontFamily: 'var(--md-sys-typescale-title-large-font-family)',
                         color: 'var(--md-sys-color-primary)', whiteSpace: 'nowrap',
                     }}>
-                        {isMobile ? 'Compiler' : 'CodeCompiler'}
+                        {isMobile ? 'Online Compiler' : 'Online Compiler Platform'}
                     </h1>
                     {!isMobile && (
                         <button className="md-icon-button" onClick={() => setIsAboutOpen(true)} title="Info">
