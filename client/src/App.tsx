@@ -309,10 +309,20 @@ function App() {
             height: (isMobile && mobilePanel !== 'terminal') ? '0' : (isMobile ? 'calc(100% - 16px)' : 'auto'),
             overflow: 'hidden',
           }}>
-            <TerminalPanel theme={theme} colors={colors} outputTab={outputTab}
-              setOutputTab={setOutputTab} plotImage={plotImage} terminalRef={terminalRef}
-              copyTerminalOutput={copyTerminalOutput} pasteIntoTerminal={pasteIntoTerminal} clearTerminal={clearTerminal}
-              language={language} flex={1} />
+            <TerminalPanel
+              theme={theme}
+              colors={colors}
+              outputTab={outputTab}
+              setOutputTab={setOutputTab}
+              plotImage={plotImage}
+              terminalRef={terminalRef}
+              copyTerminalOutput={copyTerminalOutput}
+              copyVisualOutput={copyVisualOutput}
+              pasteIntoTerminal={pasteIntoTerminal}
+              clearTerminal={clearTerminal}
+              language={language}
+              flex={1}
+            />
           </div>
         </div>
       </div>
