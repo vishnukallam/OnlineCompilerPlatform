@@ -161,7 +161,24 @@ function App() {
       }
     }
   };
+  const copyVisualOutput = async () => {
+  if (!plotImage) return;
 
+  try {
+    const response = await fetch(plotImage);
+    const blob = await response.blob();
+
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        [blob.type]: blob,
+      }),
+    ]);
+
+    console.log('Image copied successfully');
+  } catch (error) {
+    console.error('Failed to copy image:', error);
+  }
+};
   const pasteIntoTerminal = async () => {
     try {
       const text = await navigator.clipboard.readText();
