@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Language, ThemeColors } from '../types';
 
 interface TerminalPanelProps {
@@ -149,7 +149,7 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
           flex: 1,
           width: '100%',
           overflow: 'hidden',
-          position: 'relative',
+          position: 'relative', // Acting as the strict boundary container
           backgroundColor: outputTab === 'terminal' ? 'var(--colors-terminal-bg, #1e1e1e)' : 'transparent'
         }}
       >
@@ -157,11 +157,11 @@ const TerminalPanel: React.FC<TerminalPanelProps> = ({
         <div
           ref={terminalRef}
           style={{
+            position: 'absolute', // Clamps xterm positioning relative to the container
+            inset: 0,              // Spans exactly 100% top, right, bottom, left
             width: '100%',
             height: '100%',
-            overflow: 'auto',
-            padding: isMobile ? '8px' : '16px',
-            WebkitOverflowScrolling: 'touch',
+            overflow: 'hidden',    // Lets internal canvas handle text dimensions
             visibility: outputTab === 'terminal' ? 'visible' : 'hidden'
           }}
         />
