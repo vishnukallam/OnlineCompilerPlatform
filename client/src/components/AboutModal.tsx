@@ -86,7 +86,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, colors }) => {
                         }}>Visual Data Rendering</span>
                     </div>
                 </div>
-                      <div style={{
+                <div style={{
                     textAlign: 'center',
                     marginTop: 'auto',
                     marginBottom: '8px',
