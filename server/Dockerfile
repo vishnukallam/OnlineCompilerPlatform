@@ -73,6 +73,7 @@ RUN /opt/pyenv/bin/pip install --upgrade pip && \
     /opt/pyenv/bin/pip install \
     numpy \
     pandas \
+    tensorflow \
     scipy \
     matplotlib \
     seaborn \
