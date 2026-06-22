@@ -86,6 +86,16 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, colors }) => {
                         }}>Visual Data Rendering</span>
                     </div>
                 </div>
+                      <div style={{
+                    textAlign: 'center',
+                    marginTop: 'auto',
+                    marginBottom: '8px',
+                    color: 'var(--md-sys-color-on-surface-variant)',
+                    fontSize: '12px',
+                    fontFamily: 'var(--md-sys-typescale-body-medium-font-family)'
+                }}>
+                    A product by Mr. K Vishnu Vardhan Reddy
+                </div>
 
                 <div style={{
                     textAlign: 'center',
