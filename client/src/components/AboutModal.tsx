@@ -51,9 +51,9 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, colors }) => {
                     lineHeight: 'var(--md-sys-typescale-body-medium-line-height)',
                     textAlign: 'center'
                 }}>
-                    A modern web-based code editor and compiler following Material Design 3.
-                    Experience near-instant execution for Python via Pyodide
-                    and cloud-powered Java execution through Judge0.
+                  A web-based coding environment enabling users to write, compile, and execute programs in real time through an interactive browser-based environment.
+                  Implemented execution engines to securely run Python and Java programs with interactive input/output handling.
+                  Added features such as file management, package installation, and visual output rendering.
                 </p>
 
                 <div style={{
@@ -67,7 +67,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, colors }) => {
                             color: 'var(--md-sys-color-on-surface)',
                             fontSize: 'var(--md-sys-typescale-body-medium-font-size)',
                             fontFamily: 'var(--md-sys-typescale-body-medium-font-family)'
-                        }}>In-browser Python (Pyodide)</span>
+                        }}>In-browser Python</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <span className="material-symbols-rounded" style={{ color: 'var(--md-sys-color-primary)' }}>cloud</span>
@@ -75,7 +75,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, colors }) => {
                             color: 'var(--md-sys-color-on-surface)',
                             fontSize: 'var(--md-sys-typescale-body-medium-font-size)',
                             fontFamily: 'var(--md-sys-typescale-body-medium-font-family)'
-                        }}>Cloud Java Engine (Judge0)</span>
+                        }}>Cloud Java Engine</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <span className="material-symbols-rounded" style={{ color: 'var(--md-sys-color-primary)' }}>monitoring</span>
