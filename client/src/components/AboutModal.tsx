@@ -94,7 +94,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, colors }) => {
                     fontSize: '12px',
                     fontFamily: 'var(--md-sys-typescale-body-medium-font-family)'
                 }}>
-                    A product by Mr. K Vishnu Vardhan Reddy
+                    <p>A product by Mr. K Vishnu Vardhan Reddy</p>
                 </div>
 
                 <div style={{
